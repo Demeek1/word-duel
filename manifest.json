@@ -1,0 +1,14 @@
+{
+  "name": "WordSwap — Word Battle",
+  "short_name": "WordSwap",
+  "description": "Change one letter, keep the word alive. A fast, competitive word battle game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b1140",
+  "theme_color": "#6d5efc",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
