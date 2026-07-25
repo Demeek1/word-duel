@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-<title>LetterLeap — Word Puzzle Game</title>
+<title>WordSwap — Word Puzzle Game</title>
 <meta name="theme-color" content="#6d5efc" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="LetterLeap" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%236d5efc'/%3E%3Ctext x='50%25' y='54%25' font-size='95' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ELL%3C/text%3E%3C/svg%3E" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='16' fill='%236d5efc'/%3E%3Ctext x='50%25' y='56%25' font-size='34' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ELL%3C/text%3E%3C/svg%3E" />
+<meta name="apple-mobile-web-app-title" content="WordSwap" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%236d5efc'/%3E%3Ctext x='50%25' y='54%25' font-size='95' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EWS%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='16' fill='%236d5efc'/%3E%3Ctext x='50%25' y='56%25' font-size='34' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3EWS%3C/text%3E%3C/svg%3E" />
 <style>
   :root {
     --bg1:#7b6ef6; --bg2:#9d7bff; --bg3:#ff8fb1;
@@ -157,6 +157,8 @@
   @keyframes toastin { from{ opacity:0; transform:translateY(-20px) scale(.9);} to{ opacity:1; transform:none;} }
 
   #confetti { position:fixed; inset:0; z-index:40; pointer-events:none; }
+  .scorepop { position:fixed; left:50%; z-index:45; color:#fff; font-weight:900; font-size:30px; text-shadow:0 2px 10px rgba(0,0,0,.35); pointer-events:none; animation:sp .9s ease forwards; }
+  @keyframes sp { 0%{ opacity:0; transform:translate(-50%,12px) scale(.6);} 25%{ opacity:1; transform:translate(-50%,-4px) scale(1.15);} 100%{ opacity:0; transform:translate(-50%,-64px) scale(1);} }
   .foot { text-align:center; color:rgba(255,255,255,.75); font-size:11px; margin-top:14px; font-weight:600; }
   .shake { animation:shake .3s; }
   @keyframes shake { 0%,100%{ transform:translateX(0);} 25%{ transform:translateX(-6px);} 75%{ transform:translateX(6px);} }
@@ -182,8 +184,8 @@
     </div>
 
     <div class="brand">
-      <div class="tiles"><b>L</b><b>E</b><b>A</b><b>P</b></div>
-      <h1>LetterLeap</h1>
+      <div class="tiles"><b>S</b><b>W</b><b>A</b><b>P</b></div>
+      <h1>WordSwap</h1>
       <p>Change one letter. Keep the word alive!</p>
     </div>
 
@@ -210,7 +212,7 @@
       <button id="btnAch">🏅 Badges</button>
       <button id="btnHow">❔ How to play</button>
     </div>
-    <div class="foot">Tip: add LetterLeap to your home screen to play like an app 📲</div>
+    <div class="foot">Tip: add WordSwap to your home screen to play like an app 📲</div>
   </section>
 
   <!-- SETUP -->
@@ -337,7 +339,7 @@
         <p>🔁 In <b>Duel</b>, the other player continues from your word. In <b>Solo</b> &amp; <b>Daily</b>, keep the chain going yourself.</p>
         <p>⏱️ Each turn's clock shrinks as you go, down to <b>5 seconds</b>.</p>
         <p>🚫 No repeating a word already used.</p>
-        <p>⭐ Fast moves and longer words score more — build <b>combos</b> to earn coins, XP and levels!</p>
+        <p>⭐ <b>Scoring:</b> each word = <b>10</b> base, <b>+5</b> per extra letter, plus a <b>speed bonus</b> for answering fast — all multiplied by your <b>combo</b> as the chain grows. You'll see the points pop up on every word!</p>
       </div>
       <button class="btn" data-back-btn>Got it 👍</button>
     </div>
@@ -359,8 +361,8 @@
   var DEFAULT = { xp:0, level:1, coins:0, streak:0, lastDay:null, sound:true,
     stats:{ games:0, words:0, wins:0, bestChain:0, bestSolo:0, dailyBest:0 }, ach:{}, lead:[] };
   var P = load();
-  function load(){ try{ var s=JSON.parse(localStorage.getItem('letterleap')); return Object.assign({}, DEFAULT, s, {stats:Object.assign({},DEFAULT.stats,(s&&s.stats)||{}), ach:(s&&s.ach)||{}, lead:(s&&s.lead)||[]}); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
-  function save(){ try{ localStorage.setItem('letterleap', JSON.stringify(P)); }catch(e){} }
+  function load(){ try{ var s=JSON.parse(localStorage.getItem('wordswap')); return Object.assign({}, DEFAULT, s, {stats:Object.assign({},DEFAULT.stats,(s&&s.stats)||{}), ach:(s&&s.ach)||{}, lead:(s&&s.lead)||[]}); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
+  function save(){ try{ localStorage.setItem('wordswap', JSON.stringify(P)); }catch(e){} }
   function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
   function xpForLevel(l){ return 60 + (l-1)*40; }
 
@@ -404,9 +406,11 @@
       cx.save(); cx.globalAlpha=Math.max(0,p.a); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.c; cx.fillRect(-p.s/2,-p.s/2,p.s,p.s); cx.restore(); });
     parts=parts.filter(function(p){return p.a>0 && p.y<cc.height+40;}); if(parts.length){ raf=requestAnimationFrame(loop); } else { raf=null; cx.clearRect(0,0,cc.width,cc.height);} }
 
-  (function(){ var L='LETTERLEAP', box=$('bgfx'); for(var i=0;i<14;i++){ var s=document.createElement('span'); s.textContent=L[i%L.length];
+  (function(){ var L='WORDSWAP', box=$('bgfx'); for(var i=0;i<14;i++){ var s=document.createElement('span'); s.textContent=L[i%L.length];
     s.style.left=(Math.random()*100)+'%'; s.style.fontSize=(Math.random()*40+30)+'px'; s.style.animationDuration=(Math.random()*18+14)+'s';
     s.style.animationDelay=(-Math.random()*20)+'s'; box.appendChild(s);} })();
+
+  function scorePop(n){ var el=document.createElement('div'); el.className='scorepop'; el.textContent='+'+n; el.style.top=(innerHeight*0.36)+'px'; document.body.appendChild(el); setTimeout(function(){el.remove();},900); }
 
   function randWord(len){ var pool=BY_LEN[len]||BY_LEN[4]; return pool[Math.floor(Math.random()*pool.length)]; }
   function oneOff(a,b){ if(a.length!==b.length) return false; var d=0; for(var i=0;i<a.length;i++){ if(a[i]!==b[i]){d++; if(d>1)return false;} } return d===1; }
@@ -496,7 +500,7 @@
     Sound.ok(); haptic(15);
     G.current=guess; G.used.push(guess); G.chain=(G.chain||0)+1; P.stats.words++;
     if(G.mode==='duel'){ G.turn=1-G.turn; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(4); addCoins(1); renderGame(); renderTiles(true); startTimer(); }
-    else { G.score+=pts; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true); startTimer(); }
+    else { G.score+=pts; scorePop(pts); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true); startTimer(); }
     if(G.combo===5){ toast('🔥','5 combo! On fire!'); }
     check('speed', used); check('chain', G.chain); save();
   }
@@ -552,8 +556,8 @@
     else if(resultCtx.mode==='duel'){ G.scores=[0,0]; G.roundNum=0; G.firstPlayer=(G.firstPlayer+1)%2; nextRound(); }
     else { startGame(); } });
   $('homeBtn').addEventListener('click',function(){ history=['home']; go('home',false); renderHUD(); });
-  $('shareBtn').addEventListener('click',function(){ var txt='🔤 LetterLeap — '+$('resTitle').textContent+' '+((resultCtx&&resultCtx.stats)||[]).map(function(s){return s[0]+': '+s[1];}).join(', ')+' — play at '+location.href;
-    if(navigator.share){ navigator.share({title:'LetterLeap',text:txt,url:location.href}).catch(function(){}); }
+  $('shareBtn').addEventListener('click',function(){ var txt='🔤 WordSwap — '+$('resTitle').textContent+' '+((resultCtx&&resultCtx.stats)||[]).map(function(s){return s[0]+': '+s[1];}).join(', ')+' — play at '+location.href;
+    if(navigator.share){ navigator.share({title:'WordSwap',text:txt,url:location.href}).catch(function(){}); }
     else { try{ navigator.clipboard.writeText(txt); toast('📋','Result copied — paste it anywhere!'); }catch(e){ toast('📤','Share not supported'); } } });
 
   var ACH=[
