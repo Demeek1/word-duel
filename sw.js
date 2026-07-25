@@ -1,6 +1,6 @@
 /* WordSwap service worker — offline support (cache-first for the app shell). */
-var CACHE = 'wordswap-v1';
-var ASSETS = ['./', './index.html', './words.js', './manifest.json', './icon.svg'];
+var CACHE = 'wordswap-v2';
+var ASSETS = ['./', './index.html', './words.js', './config.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));

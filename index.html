@@ -102,10 +102,15 @@
   .panel h2{ font-size:22px; margin-bottom:2px; }
   .panel .sub{ color:var(--muted); font-size:13px; margin-bottom:12px; }
   label{ display:block; font-size:11px; color:var(--muted); font-weight:800; margin:14px 0 6px; text-transform:uppercase; letter-spacing:.6px; }
-  input[type=text]{ width:100%; padding:14px; border:1px solid var(--glass-brd); border-radius:14px; font-size:16px; color:var(--ink);
+  input[type=text],input[type=password],input[type=email]{ width:100%; padding:14px; border:1px solid var(--glass-brd); border-radius:14px; font-size:16px; color:var(--ink);
     background:rgba(255,255,255,.10); outline:none; }
-  input[type=text]::placeholder{ color:rgba(255,255,255,.5); }
-  input[type=text]:focus{ border-color:var(--p1); background:rgba(255,255,255,.16); }
+  input::placeholder{ color:rgba(255,255,255,.5); }
+  input[type=text]:focus,input[type=password]:focus,input[type=email]:focus{ border-color:var(--p1); background:rgba(255,255,255,.16); }
+  .tabs{ display:flex; gap:8px; margin-bottom:12px; }
+  .tabs button{ flex:1; padding:10px; border-radius:12px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.08); color:var(--ink); font-weight:800; cursor:pointer; }
+  .tabs button.on{ background:linear-gradient(135deg,var(--p1),var(--p2)); border-color:transparent; }
+  .lead .me{ outline:2px solid var(--gold); }
+  .lead .av{ font-size:20px; }
   .seg{ display:flex; gap:8px; flex-wrap:wrap; }
   .seg button{ flex:1; min-width:62px; padding:12px 6px; border:1px solid var(--glass-brd); background:rgba(255,255,255,.08);
     border-radius:14px; font-weight:800; color:var(--ink); cursor:pointer; font-size:14px; }
@@ -366,12 +371,27 @@
     </div>
   </section>
 
+  <!-- LEADERBOARD -->
+  <section id="board" class="screen">
+    <button class="backbtn" data-home>‹ Back</button>
+    <div class="glass panel">
+      <h2>🌍 Leaderboard</h2>
+      <div class="sub" id="boardSub">Compete with players worldwide.</div>
+      <div class="tabs" id="boardTabs">
+        <button data-tab="global" class="on">🏆 Global</button>
+        <button data-tab="daily">📅 Daily</button>
+      </div>
+      <div class="lead" id="boardList"><div class="sub">Loading…</div></div>
+    </div>
+  </section>
+
   <!-- SETTINGS -->
   <section id="settings" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
     <div class="glass panel">
       <h2>⚙️ Settings</h2>
       <div class="sub">Everything saves on this device.</div>
+      <div id="accountRow" style="padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.1);"></div>
       <div class="rows"><div>🔊 Sound effects</div><div class="switch" id="swSound"><div class="k"></div></div></div>
       <div class="rows"><div>📳 Haptics (vibration)</div><div class="switch" id="swHaptic"><div class="k"></div></div></div>
       <div class="rows"><div>✏️ Change name / avatar</div><button class="iconbtn" id="editProfBtn" style="width:auto; padding:0 12px;">Edit</button></div>
@@ -385,6 +405,8 @@
 
 </div>
 
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="words.js"></script>
 <script>
 (function(){
@@ -416,7 +438,102 @@
   function load(){ try{ var s=JSON.parse(localStorage.getItem('wordswap2'))||{}; var m=JSON.parse(JSON.stringify(DEFAULT));
     for(var k in s){ m[k]=s[k]; } m.stats=Object.assign({},DEFAULT.stats,s.stats||{}); m.powers=Object.assign({},DEFAULT.powers,s.powers||{});
     m.themesOwned=s.themesOwned||DEFAULT.themesOwned.slice(); m.ach=s.ach||{}; m.lead=s.lead||[]; return m; }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
-  function save(){ try{ localStorage.setItem('wordswap2', JSON.stringify(P)); }catch(e){} }
+  function save(){ try{ localStorage.setItem('wordswap2', JSON.stringify(P)); }catch(e){} schedulePush(); }
+
+  /* ===================== CLOUD (Supabase) ===================== */
+  var CFG=window.WORDSWAP_CONFIG||{};
+  var supa=null;
+  try{ if(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase){ supa=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}); } }catch(e){ supa=null; }
+  var USER=null;
+  function cloudOn(){ return !!supa; }
+  function myId(){ return USER?USER.id:null; }
+  function myEmail(){ return USER?(USER.email||(USER.is_anonymous?'Guest account':'')):''; }
+
+  var pushT=null;
+  function schedulePush(){ if(!supa||!USER) return; clearTimeout(pushT); pushT=setTimeout(pushProfile,1200); }
+  function pushProfile(){ if(!supa||!USER) return;
+    try{ supa.from('profiles').upsert({ id:USER.id, username:P.name||'Player', avatar:P.avatar,
+      country:(navigator.language||'').split('-').pop().toUpperCase().slice(0,2),
+      level:P.level, xp:P.xp, coins:P.coins, streak:P.streak,
+      best_solo:P.stats.bestSolo, best_chain:P.stats.bestChain, games:P.stats.games, wins:P.stats.wins, words:P.stats.words,
+      updated_at:new Date().toISOString() }).then(function(){},function(){}); }catch(e){} }
+
+  function pullMerge(){ if(!supa||!USER) return;
+    supa.from('profiles').select('*').eq('id',USER.id).maybeSingle().then(function(res){ var r=res.data;
+      if(r){ P.level=Math.max(P.level,r.level||1); P.xp=Math.max(P.xp,r.xp||0); P.coins=Math.max(P.coins,r.coins||0); P.streak=Math.max(P.streak,r.streak||0);
+        P.stats.bestSolo=Math.max(P.stats.bestSolo,r.best_solo||0); P.stats.bestChain=Math.max(P.stats.bestChain,r.best_chain||0);
+        P.stats.games=Math.max(P.stats.games,r.games||0); P.stats.wins=Math.max(P.stats.wins,r.wins||0); P.stats.words=Math.max(P.stats.words,r.words||0);
+        if(r.username && (!P.name||P.name==='Player')) P.name=r.username; }
+      save(); renderHUD(); try{localStorage.setItem('wordswap2',JSON.stringify(P));}catch(e){} pushProfile();
+    },function(){});
+  }
+
+  function submitDaily(score){ if(!supa||!USER) return; var day=new Date().toISOString().slice(0,10);
+    supa.from('daily_scores').select('score').eq('user_id',USER.id).eq('day',day).maybeSingle().then(function(r){
+      if(!r.data || score>r.data.score){ supa.from('daily_scores').upsert({user_id:USER.id,day:day,score:score},{onConflict:'user_id,day'}).then(function(){},function(){}); }
+    },function(){});
+  }
+
+  function fetchBoard(kind){ if(!supa) return Promise.resolve(null);
+    if(kind==='daily'){ var day=new Date().toISOString().slice(0,10);
+      return supa.from('daily_scores').select('score, profiles(username,avatar)').eq('day',day).order('score',{ascending:false}).limit(50)
+        .then(function(r){ return (r.data||[]).map(function(x){ return {name:(x.profiles&&x.profiles.username)||'Player', av:(x.profiles&&x.profiles.avatar)||'😀', score:x.score}; }); },function(){return null;}); }
+    return supa.from('profiles').select('username,avatar,best_solo,level').order('best_solo',{ascending:false}).limit(50)
+      .then(function(r){ return (r.data||[]).map(function(x){ return {name:x.username||'Player', av:x.avatar||'😀', score:x.best_solo, level:x.level}; }); },function(){return null;});
+  }
+
+  /* auth */
+  function afterAuth(){ updateAccountUI(); pullMerge(); toast('☁️','Signed in — progress is syncing'); if($('board').classList.contains('active')) loadBoard(curTab); }
+  if(supa){
+    supa.auth.getSession().then(function(res){ USER=(res.data&&res.data.session)?res.data.session.user:null; updateAccountUI(); if(USER) pullMerge(); });
+    supa.auth.onAuthStateChange(function(_e,session){ var prev=USER&&USER.id; var u=session?session.user:null; USER=u; if(u&&u.id!==prev){ afterAuth(); } else { updateAccountUI(); } });
+  }
+  function authEmail(mode,email,pw){ return mode==='up'
+      ? supa.auth.signUp({email:email,password:pw,options:{data:{username:P.name||'Player'}}})
+      : supa.auth.signInWithPassword({email:email,password:pw}); }
+  function authGoogle(){ return supa.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href.split('#')[0]}}); }
+  function authGuest(){ return supa.auth.signInAnonymously(); }
+  function signOut(){ if(!supa)return; supa.auth.signOut().then(function(){ USER=null; updateAccountUI(); toast('👋','Signed out'); }); }
+
+  function authModal(){
+    if(!cloudOn()){ modal('<div class="em">🔌</div><h3>Cloud not connected</h3><p>Add your Supabase URL &amp; anon key in <b>config.js</b> to turn on accounts and global leaderboards. See the Phase 1 setup guide.</p><button class="btn" data-close>OK</button>'); return; }
+    modal('<div class="em">☁️</div><h3>Sign in to compete</h3><p style="margin-bottom:10px">Save your progress across devices &amp; climb the global leaderboard.</p>'
+      +'<input type="email" id="auEmail" placeholder="email" autocomplete="email" style="margin-bottom:8px"/>'
+      +'<input type="password" id="auPw" placeholder="password (6+ chars)" autocomplete="current-password" style="margin-bottom:8px"/>'
+      +'<button class="btn" id="auIn">Sign in</button>'
+      +'<button class="btn ghost" id="auUp">Create account</button>'
+      +'<button class="btn ghost" id="auG">🔵 Continue with Google</button>'
+      +'<button class="btn ghost" id="auGuest">👤 Play as guest (online)</button>'
+      +'<button class="btn ghost" data-close>Cancel</button>');
+    function grab(){ return { e:($('auEmail').value||'').trim(), p:($('auPw').value||'').trim() }; }
+    function handle(pr){ pr.then(function(res){ if(res && res.error){ toast('⚠️',res.error.message); } else { $('backdrop').classList.remove('show'); } },function(err){ toast('⚠️',(err&&err.message)||'Something went wrong'); }); }
+    $('auIn').addEventListener('click',function(){ var g=grab(); if(!g.e||!g.p){ toast('✏️','Enter email & password'); return; } handle(authEmail('in',g.e,g.p)); });
+    $('auUp').addEventListener('click',function(){ var g=grab(); if(!g.e||g.p.length<6){ toast('✏️','Email + 6-char password'); return; } authEmail('up',g.e,g.p).then(function(res){ if(res&&res.error){toast('⚠️',res.error.message);} else { $('backdrop').classList.remove('show'); toast('📧','Check your email to confirm, then sign in'); } },function(err){ toast('⚠️',(err&&err.message)||'Error'); }); });
+    $('auG').addEventListener('click',function(){ handle(authGoogle()); });
+    $('auGuest').addEventListener('click',function(){ handle(authGuest()); });
+  }
+
+  function updateAccountUI(){ var el=$('accountRow'); if(!el) return;
+    if(!cloudOn()){ el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center;"><div>☁️ Online account<br><span style="color:var(--muted); font-size:12px">Not set up — see setup guide</span></div></div>'; return; }
+    if(USER){ el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ '+(myEmail()||'Signed in')+'<br><span style="color:var(--good); font-size:12px">Synced to cloud</span></div><button class="iconbtn" id="btnSignOut" style="width:auto; padding:0 12px;">Sign out</button></div>'; var b=$('btnSignOut'); if(b)b.addEventListener('click',signOut); }
+    else { el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ Online account<br><span style="color:var(--muted); font-size:12px">Sign in to sync &amp; compete</span></div><button class="iconbtn" id="btnSignIn" style="width:auto; padding:0 12px;">Sign in</button></div>'; var s=$('btnSignIn'); if(s)s.addEventListener('click',authModal); }
+  }
+
+  /* leaderboard screen */
+  var curTab='global';
+  function openBoard(){ loadBoard(curTab); }
+  $('boardTabs').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ $('boardTabs').querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); curTab=b.dataset.tab; loadBoard(curTab); }); });
+  function loadBoard(kind){ var list=$('boardList');
+    if(!cloudOn()){ $('boardSub').textContent='Connect an account to see worldwide ranks.'; list.innerHTML=localBoard(); return; }
+    $('boardSub').textContent = USER? 'Compete with players worldwide.' : 'Sign in to appear on the board.';
+    list.innerHTML='<div class="sub">Loading…</div>';
+    fetchBoard(kind).then(function(rows){ if(!rows){ list.innerHTML='<div class="sub">Could not load — check your connection.</div>'; return; }
+      if(!rows.length){ list.innerHTML='<div class="sub">No scores yet — be the first! Play '+(kind==='daily'?'today\'s Daily':'Solo')+'.</div>'; return; }
+      list.innerHTML=rows.map(function(r,i){ var me=(P.name&&r.name===P.name)?' me':''; return '<div class="row'+me+'"><div class="rank">'+(i+1)+'</div><div class="av">'+r.av+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>'; }).join('');
+    });
+  }
+  function localBoard(){ var L=(P.lead||[]).slice(0,10); if(!L.length) return '<div class="sub">Play Solo to set a local score. Add your Supabase keys to unlock the worldwide board!</div>';
+    return L.map(function(r,i){ return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="av">'+P.avatar+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>'; }).join(''); }
   function today(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
   function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
   function xpNeed(l){ return 80+(l-1)*55; }
@@ -446,16 +563,16 @@
 
   /* ---- nav ---- */
   var stack=['home'];
-  var NAV_SCREENS={home:1,shop:1,profile:1,settings:1};
+  var NAV_SCREENS={home:1,board:1,shop:1,profile:1,settings:1};
   function go(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.id===id);});
     if(stack[stack.length-1]!==id) stack.push(id); scrollTo(0,0); $('nav').style.display=NAV_SCREENS[id]?'flex':'none'; syncNav(id); }
   function home(){ stopTimer(); stack=['home']; go('home'); refreshHome(); }
   document.querySelectorAll('[data-home]').forEach(function(b){ b.addEventListener('click',home); });
 
-  var NAV=[['home','🏠','Home'],['shop','🎨','Shop'],['profile','👤','Profile'],['settings','⚙️','Settings']];
+  var NAV=[['home','🏠','Home'],['board','🌍','Ranks'],['shop','🎨','Shop'],['profile','👤','Profile'],['settings','⚙️','More']];
   (function(){ $('nav').innerHTML=NAV.map(function(n){return '<button data-nav="'+n[0]+'"><span class="ni">'+n[1]+'</span>'+n[2]+'</button>';}).join('');
     $('nav').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ var t=b.dataset.nav;
-      if(t==='home'){ home(); } else { if(t==='shop')renderShop(); if(t==='profile')renderProfile(); if(t==='settings')renderSettings(); go(t); } }); }); })();
+      if(t==='home'){ home(); } else { if(t==='shop')renderShop(); if(t==='profile')renderProfile(); if(t==='settings')renderSettings(); if(t==='board')openBoard(); go(t); } }); }); })();
   function syncNav(id){ $('nav').querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.nav===id); }); }
 
   /* ---- HUD ---- */
@@ -595,7 +712,7 @@
     else { toast('🎉',G.names[winnerIdx]+' takes the round!'); showResult({ em:'⏱️', title:G.names[winnerIdx]+' wins the round', body:reason, stats:[['Score',G.scores[0]+' – '+G.scores[1]],['Round',G.roundNum]], reward:[], mode:'duel-continue' }); Sound.big(); }
   }
   function endSolo(){ stopTimer(); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain); var best=false;
-    if(G.mode==='daily'){ if(G.score>P.stats.dailyBest)P.stats.dailyBest=G.score; P.dailyDoneDay=today(); bumpStreak(); }
+    if(G.mode==='daily'){ if(G.score>P.stats.dailyBest)P.stats.dailyBest=G.score; P.dailyDoneDay=today(); bumpStreak(); submitDaily(G.score); }
     if(G.score>P.stats.bestSolo){ P.stats.bestSolo=G.score; best=true; }
     P.lead.push({name:P.name||'You',score:G.score,d:today()}); P.lead.sort(function(a,b){return b.score-a.score;}); P.lead=P.lead.slice(0,10);
     var coins=Math.max(1,Math.round(G.score/40)); addXP(8); addCoins(coins); if(G.chain>=25)unlock('chain25'); save();
@@ -646,7 +763,7 @@
     var L=P.lead.slice(0,5); $('pfLead').innerHTML=L.length?L.map(function(r,i){return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>';}).join(''):'<div class="sub">Play Solo to set a score!</div>'; }
 
   /* ---- settings ---- */
-  function renderSettings(){ $('swSound').classList.toggle('on',P.sound); $('swHaptic').classList.toggle('on',P.haptic); }
+  function renderSettings(){ $('swSound').classList.toggle('on',P.sound); $('swHaptic').classList.toggle('on',P.haptic); updateAccountUI(); }
   $('swSound').addEventListener('click',function(){ P.sound=!P.sound; renderSettings(); save(); if(P.sound)Sound.resume(); $('sndG').textContent=P.sound?'🔊':'🔇'; });
   $('swHaptic').addEventListener('click',function(){ P.haptic=!P.haptic; renderSettings(); save(); if(P.haptic)haptic(20); });
   $('sndG').addEventListener('click',function(){ P.sound=!P.sound; save(); $('sndG').textContent=P.sound?'🔊':'🔇'; renderSettings(); });
@@ -670,7 +787,7 @@
     if(!first){ setTimeout(function(){ modal('<div class="em">🎁</div><h3>Welcome back!</h3><p>Daily reward for showing up:</p><div class="reward" style="justify-content:center; margin:14px 0;"><div class="r">🪙 +'+coins+'</div></div><button class="btn" data-close>Collect</button>'); Sound.coin(); }, 600); } }
 
   /* ---- init ---- */
-  applyTheme(P.theme); renderHUD(); $('sndG').textContent=P.sound?'🔊':'🔇';
+  applyTheme(P.theme); renderHUD(); updateAccountUI(); $('sndG').textContent=P.sound?'🔊':'🔇';
   if(!P.name){ openOnboard(false); } else { go('home'); refreshHome(); dailyRewardCheck(); }
   if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 })();
