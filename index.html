@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>One-Letter Word Duel</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card2: #273449;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --good: #34d399;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, #1e293b, var(--bg));
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+  .card {
+    background: var(--card);
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  h1 {
+    font-size: 26px;
+    text-align: center;
+    margin-bottom: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--card2);
+    border: 1px solid #3b4a63;
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 16px;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .opts { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+  .opts button {
+    flex: 1; min-width: 70px; padding: 10px; border-radius: 10px; border: 1px solid #3b4a63;
+    background: var(--card2); color: var(--text); cursor: pointer; font-size: 14px;
+  }
+  .opts button small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .opts button.active { border-color: var(--accent); background: #0b3a4d; color: var(--accent); }
+  .opts button.active small { color: var(--accent); }
+  button.primary {
+    width: 100%; margin-top: 22px; padding: 14px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #0b1220; font-weight: 700; font-size: 16px;
+    border: none; border-radius: 12px; cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.ghost {
+    width: 100%; margin-top: 10px; padding: 12px; background: transparent;
+    color: var(--muted); border: 1px solid #3b4a63; border-radius: 12px; cursor: pointer; font-size: 14px;
+  }
+  .rules {
+    margin-top: 20px; padding: 16px; background: var(--card2);
+    border-radius: 12px; font-size: 13px; color: var(--muted); line-height: 1.6;
+  }
+  .rules b { color: var(--text); }
+
+  .hidden { display: none; }
+
+  /* sound toggle */
+  .sound-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--card2); border: 1px solid #3b4a63; color: var(--text);
+    width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 18px;
+  }
+
+  /* scoreboard */
+  .score-board {
+    display: flex; align-items: stretch; gap: 10px; margin-bottom: 16px;
+  }
+  .score-cell {
+    flex: 1; text-align: center; padding: 10px; border-radius: 12px;
+    background: var(--card2); border: 2px solid transparent;
+  }
+  .score-cell.p0.active { border-color: var(--accent); }
+  .score-cell.p1.active { border-color: var(--accent2); }
+  .score-cell .nm { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score-cell .sc { font-size: 30px; font-weight: 800; }
+  .score-cell.p0 .sc { color: var(--accent); }
+  .score-cell.p1 .sc { color: var(--accent2); }
+  .score-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+  .score-mid b { font-size: 16px; color: var(--text); }
+
+  .turn-banner { text-align: center; font-size: 13px; color: var(--muted); }
+  .turn-name { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .timer-ring { display: flex; justify-content: center; margin: 10px 0 4px; }
+  .timer-num { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; transition: color 0.2s; }
+  .bar-wrap { height: 10px; background: var(--card2); border-radius: 6px; overflow: hidden; margin: 4px 0 18px; }
+  .bar { height: 100%; width: 100%; background: linear-gradient(90deg, var(--good), var(--accent)); transition: width 0.1s linear; }
+  .word-box { text-align: center; padding: 22px; background: var(--card2); border-radius: 16px; margin-bottom: 8px; }
+  .word-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .word { font-size: 44px; font-weight: 800; letter-spacing: 8px; text-transform: uppercase; margin-top: 6px; color: var(--accent); }
+  .msg { min-height: 22px; text-align: center; font-size: 14px; margin: 10px 0; font-weight: 600; }
+  .msg.good { color: var(--good); }
+  .msg.bad { color: var(--bad); }
+  .used { margin-top: 14px; font-size: 12px; color: var(--muted); text-align: center; max-height: 60px; overflow-y: auto; }
+  .used span { display: inline-block; background: var(--card2); padding: 2px 8px; border-radius: 8px; margin: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .winner-name { font-size: 30px; font-weight: 800; text-align: center; margin: 10px 0;
+    background: linear-gradient(90deg, var(--good), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .trophy { font-size: 60px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <div id="setup" class="card">
+    <button class="sound-btn" id="soundBtnSetup" title="Toggle sound">🔊</button>
+    <h1>🔤 One-Letter Word Duel</h1>
+    <p class="subtitle">Two players. Change one letter. Beat the clock.</p>
+
+    <div class="row">
+      <div>
+        <label>Player A</label>
+        <input type="text" id="nameA" value="Player A" maxlength="14" />
+      </div>
+      <div>
+        <label>Player B</label>
+        <input type="text" id="nameB" value="Player B" maxlength="14" />
+      </div>
+    </div>
+
+    <label>Word length</label>
+    <div class="opts" id="lenOpts">
+      <button data-len="3">3 letters</button>
+      <button data-len="4" class="active">4 letters</button>
+      <button data-len="5">5 letters</button>
+    </div>
+
+    <label>Difficulty (how fast the clock shrinks)</label>
+    <div class="opts" id="diffOpts">
+      <button data-diff="chill">Chill<small>12s · −0.3s</small></button>
+      <button data-diff="normal" class="active">Normal<small>10s · −0.5s</small></button>
+      <button data-diff="blitz">Blitz<small>8s · −0.75s</small></button>
+      <button data-diff="insane">Insane<small>7s · −1.0s</small></button>
+    </div>
+
+    <label>Match length (rounds needed to win)</label>
+    <div class="opts" id="targetOpts">
+      <button data-target="1">Single</button>
+      <button data-target="3" class="active">First to 3</button>
+      <button data-target="5">First to 5</button>
+    </div>
+
+    <label>Starting word (optional — blank picks a random one)</label>
+    <input type="text" id="startWord" placeholder="e.g. book" maxlength="5" />
+
+    <button class="primary" id="startBtn">Start Match</button>
+
+    <div class="rules">
+      <b>How to play:</b><br>
+      • You're given a word (e.g. <b>BOOK</b>).<br>
+      • Change <b>exactly one letter</b> to make a new real word — same length (BOOK → <b>TOOK</b>).<br>
+      • The other player continues from your word.<br>
+      • Each turn's clock shrinks as the round goes on, down to a <b>5-second</b> floor.<br>
+      • No repeating a word already used. Run out of time and you lose the round — first to the match target wins!
+    </div>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="game" class="card hidden">
+    <button class="sound-btn" id="soundBtnGame" title="Toggle sound">🔊</button>
+
+    <div class="score-board">
+      <div class="score-cell p0" id="cellA">
+        <div class="nm" id="sbNameA">Player A</div>
+        <div class="sc" id="sbScoreA">0</div>
+      </div>
+      <div class="score-mid"><span>ROUND</span><b id="sbRound">1</b><span id="sbTarget">to 3</span></div>
+      <div class="score-cell p1" id="cellB">
+        <div class="nm" id="sbNameB">Player B</div>
+        <div class="sc" id="sbScoreB">0</div>
+      </div>
+    </div>
+
+    <div class="turn-banner">Now playing</div>
+    <div class="turn-name" id="turnName">Player A</div>
+
+    <div class="timer-ring"><span class="timer-num" id="timerNum">10.0</span></div>
+    <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+
+    <div class="word-box">
+      <div class="word-label">Current word</div>
+      <div class="word" id="currentWord">BOOK</div>
+    </div>
+
+    <label for="answer" style="text-align:center;">Type a new word (change one letter)</label>
+    <input type="text" id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="your word…" />
+
+    <div class="msg" id="msg"></div>
+    <div class="used" id="usedList"></div>
+  </div>
+
+  <!-- ============ ROUND OVER ============ -->
+  <div id="roundOver" class="card hidden">
+    <div class="trophy">⏱️</div>
+    <p class="subtitle" style="margin-top:8px;">Round over</p>
+    <div class="winner-name" id="roundWinner">Player B</div>
+    <div class="msg" id="roundReason" style="color:var(--muted);"></div>
+    <div class="score-board" style="margin-top:6px;">
+      <div class="score-cell p0"><div class="nm" id="roNameA">Player A</div><div class="sc" id="roScoreA">0</div></div>
+      <div class="score-mid"><span>SCORE</span></div>
+      <div class="score-cell p1"><div class="nm" id="roNameB">Player B</div><div class="sc" id="roScoreB">0</div></div>
+    </div>
+    <div class="word-box">
+      <div class="word-label">Words played this round</div>
+      <div class="used" id="roundChain" style="max-height:100px;"></div>
+    </div>
+    <button class="primary" id="nextRoundBtn">Next Round ▶</button>
+  </div>
+
+  <!-- ============ MATCH OVER ============ -->
+  <div id="matchOver" class="card hidden">
+    <div class="trophy">🏆</div>
+    <p class="subtitle" style="margin-top:8px;">Champion</p>
+    <div class="winner-name" id="champName">Player B</div>
+    <div class="msg" id="champReason" style="color:var(--muted);"></div>
+    <div class="score-board" style="margin-top:6px;">
+      <div class="score-cell p0"><div class="nm" id="moNameA">Player A</div><div class="sc" id="moScoreA">0</div></div>
+      <div class="score-mid"><span>FINAL</span></div>
+      <div class="score-cell p1"><div class="nm" id="moNameB">Player B</div><div class="sc" id="moScoreB">0</div></div>
+    </div>
+    <button class="primary" id="rematchBtn">Rematch (same players)</button>
+    <button class="ghost" id="newMatchBtn">New setup</button>
+  </div>
+
+</div>
+
+<script src="words.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var DICT = new Set(WORD_LIST.map(function (w) { return w.toLowerCase(); }));
+  var BY_LEN = {};
+  DICT.forEach(function (w) { (BY_LEN[w.length] = BY_LEN[w.length] || []).push(w); });
+
+  var DIFF = {
+    chill:  { start: 12, step: 0.3 },
+    normal: { start: 10, step: 0.5 },
+    blitz:  { start: 8,  step: 0.75 },
+    insane: { start: 7,  step: 1.0 }
+  };
+  var MIN_LIMIT = 5.0;
+
+  // ---------- tiny WebAudio sound engine (no files, works offline) ----------
+  var Sound = (function () {
+    var ctx = null, enabled = true;
+    function ac() {
+      if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ctx = null; } }
+      return ctx;
+    }
+    function tone(freq, start, dur, type, vol) {
+      var c = ac(); if (!c) return;
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type || "sine";
+      o.frequency.value = freq;
+      var t0 = c.currentTime + start;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol == null ? 0.2 : vol, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+    }
+    return {
+      setEnabled: function (v) { enabled = v; },
+      isEnabled: function () { return enabled; },
+      resume: function () { var c = ac(); if (c && c.state === "suspended") c.resume(); },
+      ok:    function () { if (!enabled) return; tone(523, 0, 0.12, "triangle"); tone(784, 0.09, 0.16, "triangle"); },
+      error: function () { if (!enabled) return; tone(160, 0, 0.22, "sawtooth", 0.15); },
+      tick:  function () { if (!enabled) return; tone(880, 0, 0.05, "square", 0.08); },
+      timeup:function () { if (!enabled) return; tone(400, 0, 0.18, "sawtooth", 0.2); tone(250, 0.16, 0.3, "sawtooth", 0.2); },
+      round: function () { if (!enabled) return; [523,659,784].forEach(function (f,i){ tone(f, i*0.1, 0.2, "triangle"); }); },
+      match: function () { if (!enabled) return; [523,659,784,1047].forEach(function (f,i){ tone(f, i*0.12, 0.3, "triangle"); }); }
+    };
+  })();
+
+  var $ = function (id) { return document.getElementById(id); };
+  var screens = { setup: $("setup"), game: $("game"), roundOver: $("roundOver"), matchOver: $("matchOver") };
+  function show(name) { Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("hidden", k !== name); }); }
+
+  // setup selections
+  var chosenLen = 4, chosenDiff = "normal", chosenTarget = 3;
+  function wireOpts(containerId, attr, cb) {
+    var c = $(containerId);
+    c.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        c.querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        cb(b.dataset[attr]);
+      });
+    });
+  }
+  wireOpts("lenOpts", "len", function (v) { chosenLen = parseInt(v, 10); });
+  wireOpts("diffOpts", "diff", function (v) { chosenDiff = v; });
+  wireOpts("targetOpts", "target", function (v) { chosenTarget = parseInt(v, 10); });
+
+  // ---------- match + round state ----------
+  var match = null;   // { names, scores, target, diff, roundNum, firstPlayer }
+  var round = null;   // { turn, current, used, limit, remaining, count }
+  var ticker = null, lastTickSecond = null;
+
+  function pickRandomWord(len) {
+    var pool = BY_LEN[len] || BY_LEN[4];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function oneLetterChanged(a, b) {
+    if (a.length !== b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) { if (a[i] !== b[i]) { diff++; if (diff > 1) return false; } }
+    return diff === 1;
+  }
+
+  function startMatch() {
+    Sound.resume();
+    var nameA = ($("nameA").value.trim() || "Player A");
+    var nameB = ($("nameB").value.trim() || "Player B");
+    var raw = $("startWord").value.trim().toLowerCase();
+    var firstStart = null;
+    if (raw) {
+      if (!/^[a-z]+$/.test(raw)) { alert("Starting word must be letters only."); return; }
+      if (!DICT.has(raw)) { alert("\"" + raw + "\" isn't in the game's dictionary. Try another, or leave it blank."); return; }
+      firstStart = raw;
+      chosenLen = raw.length;
+    }
+    match = {
+      names: [nameA, nameB],
+      scores: [0, 0],
+      target: chosenTarget,
+      diff: DIFF[chosenDiff],
+      roundNum: 0,
+      firstPlayer: 0,
+      firstStartWord: firstStart,
+      len: chosenLen
+    };
+    nextRound();
+  }
+
+  function nextRound() {
+    match.roundNum += 1;
+    // round 1 may use a custom starting word; later rounds are random
+    var startWord = (match.roundNum === 1 && match.firstStartWord) ? match.firstStartWord : pickRandomWord(match.len);
+    // alternate who starts each round
+    var starter = (match.firstPlayer + (match.roundNum - 1)) % 2;
+    round = {
+      turn: starter,
+      current: startWord,
+      used: [startWord],
+      limit: match.diff.start,
+      remaining: match.diff.start,
+      count: 1
+    };
+    show("game");
+    renderScore();
+    renderTurn();
+    $("answer").focus();
+  }
+
+  function renderScore() {
+    $("sbNameA").textContent = match.names[0];
+    $("sbNameB").textContent = match.names[1];
+    $("sbScoreA").textContent = match.scores[0];
+    $("sbScoreB").textContent = match.scores[1];
+    $("sbRound").textContent = match.roundNum;
+    $("sbTarget").textContent = match.target === 1 ? "single" : "to " + match.target;
+    $("cellA").classList.toggle("active", round.turn === 0);
+    $("cellB").classList.toggle("active", round.turn === 1);
+  }
+
+  function renderTurn() {
+    $("turnName").textContent = match.names[round.turn];
+    $("turnName").style.color = round.turn === 0 ? "var(--accent)" : "var(--accent2)";
+    $("currentWord").textContent = round.current;
+    $("answer").value = "";
+    setMsg("", "");
+    renderUsed();
+    $("cellA").classList.toggle("active", round.turn === 0);
+    $("cellB").classList.toggle("active", round.turn === 1);
+    startTimer();
+  }
+
+  function renderUsed() {
+    $("usedList").innerHTML = round.used.map(function (w) { return "<span>" + w + "</span>"; }).join("");
+  }
+
+  function setMsg(text, kind) { var m = $("msg"); m.textContent = text; m.className = "msg" + (kind ? " " + kind : ""); }
+
+  function startTimer() {
+    stopTimer();
+    round.remaining = round.limit;
+    lastTickSecond = Math.ceil(round.remaining);
+    updateTimerUI();
+    var last = performance.now();
+    ticker = setInterval(function () {
+      var now = performance.now();
+      round.remaining -= (now - last) / 1000;
+      last = now;
+      if (round.remaining <= 0) {
+        round.remaining = 0; updateTimerUI(); stopTimer(); timeUp(); return;
+      }
+      // tick sound in the final 3 seconds
+      var sec = Math.ceil(round.remaining);
+      if (sec <= 3 && sec !== lastTickSecond) { lastTickSecond = sec; Sound.tick(); }
+      updateTimerUI();
+    }, 50);
+  }
+  function stopTimer() { if (ticker) { clearInterval(ticker); ticker = null; } }
+
+  function updateTimerUI() {
+    var t = round.remaining;
+    $("timerNum").textContent = t.toFixed(1);
+    var pct = Math.max(0, (t / round.limit) * 100);
+    $("bar").style.width = pct + "%";
+    var high = t > round.limit * 0.5, mid = t > round.limit * 0.25;
+    $("timerNum").style.color = high ? "var(--good)" : (mid ? "var(--warn)" : "var(--bad)");
+    $("bar").style.background = high ? "linear-gradient(90deg, var(--good), var(--accent))" : (mid ? "var(--warn)" : "var(--bad)");
+  }
+
+  function timeUp() {
+    Sound.timeup();
+    var loser = round.turn, winner = 1 - loser;
+    endRound(winner, match.names[loser] + " ran out of time!");
+  }
+
+  function submitAnswer() {
+    if (!round) return;
+    var guess = $("answer").value.trim().toLowerCase();
+    if (!guess) return;
+    if (!/^[a-z]+$/.test(guess)) { Sound.error(); setMsg("Letters only, please.", "bad"); return; }
+    if (guess === round.current) { Sound.error(); setMsg("You must change one letter.", "bad"); return; }
+    if (guess.length !== round.current.length) { Sound.error(); setMsg("Word must be " + round.current.length + " letters long.", "bad"); return; }
+    if (!oneLetterChanged(round.current, guess)) { Sound.error(); setMsg("Change exactly ONE letter — no more, no less.", "bad"); return; }
+    if (round.used.indexOf(guess) !== -1) { Sound.error(); setMsg("\"" + guess.toUpperCase() + "\" was already used. Try another.", "bad"); return; }
+    if (!DICT.has(guess)) { Sound.error(); setMsg("\"" + guess.toUpperCase() + "\" isn't a word I know. Try another.", "bad"); return; }
+
+    Sound.ok();
+    stopTimer();
+    round.current = guess;
+    round.used.push(guess);
+    round.turn = 1 - round.turn;
+    round.count += 1;
+    round.limit = Math.max(MIN_LIMIT, round.limit - match.diff.step);
+    renderScore();
+    renderTurn();
+  }
+
+  function endRound(winnerIdx, reason) {
+    stopTimer();
+    match.scores[winnerIdx] += 1;
+    if (match.scores[winnerIdx] >= match.target) { endMatch(winnerIdx); return; }
+    Sound.round();
+    $("roundWinner").textContent = match.names[winnerIdx] + " wins the round";
+    $("roundWinner").style.color = "";
+    $("roundReason").textContent = reason + "  (" + round.count + " words played)";
+    $("roNameA").textContent = match.names[0]; $("roNameB").textContent = match.names[1];
+    $("roScoreA").textContent = match.scores[0]; $("roScoreB").textContent = match.scores[1];
+    $("roundChain").innerHTML = round.used.map(function (w) { return "<span>" + w + "</span>"; }).join(" ");
+    show("roundOver");
+  }
+
+  function endMatch(winnerIdx, reason) {
+    stopTimer();
+    Sound.match();
+    $("champName").textContent = match.names[winnerIdx];
+    $("champReason").textContent = "Won " + match.scores[winnerIdx] + " – " + match.scores[1 - winnerIdx];
+    $("moNameA").textContent = match.names[0]; $("moNameB").textContent = match.names[1];
+    $("moScoreA").textContent = match.scores[0]; $("moScoreB").textContent = match.scores[1];
+    show("matchOver");
+  }
+
+  // ---------- sound toggle buttons ----------
+  function refreshSoundBtns() {
+    var icon = Sound.isEnabled() ? "🔊" : "🔇";
+    $("soundBtnSetup").textContent = icon;
+    $("soundBtnGame").textContent = icon;
+  }
+  function toggleSound() { Sound.setEnabled(!Sound.isEnabled()); if (Sound.isEnabled()) Sound.resume(); refreshSoundBtns(); }
+  $("soundBtnSetup").addEventListener("click", toggleSound);
+  $("soundBtnGame").addEventListener("click", toggleSound);
+
+  // ---------- wire events ----------
+  $("startBtn").addEventListener("click", startMatch);
+  $("nextRoundBtn").addEventListener("click", nextRound);
+  $("rematchBtn").addEventListener("click", function () {
+    match.scores = [0, 0]; match.roundNum = 0; match.firstStartWord = null;
+    match.firstPlayer = (match.firstPlayer + 1) % 2; // swap who starts the rematch
+    nextRound();
+  });
+  $("newMatchBtn").addEventListener("click", function () { show("setup"); });
+  $("answer").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitAnswer(); } });
+  $("startWord").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); startMatch(); } });
+
+  refreshSoundBtns();
+})();
+</script>
+</body>
+</html>
