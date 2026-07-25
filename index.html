@@ -2,528 +2,599 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>One-Letter Word Duel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<title>LetterLeap — Word Puzzle Game</title>
+<meta name="theme-color" content="#6d5efc" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="LetterLeap" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%236d5efc'/%3E%3Ctext x='50%25' y='54%25' font-size='95' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ELL%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='16' fill='%236d5efc'/%3E%3Ctext x='50%25' y='56%25' font-size='34' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'%3ELL%3C/text%3E%3C/svg%3E" />
 <style>
   :root {
-    --bg: #0f172a;
-    --card: #1e293b;
-    --card2: #273449;
-    --accent: #38bdf8;
-    --accent2: #a78bfa;
-    --good: #34d399;
-    --bad: #f87171;
-    --warn: #fbbf24;
-    --text: #e2e8f0;
-    --muted: #94a3b8;
+    --bg1:#7b6ef6; --bg2:#9d7bff; --bg3:#ff8fb1;
+    --card:#ffffff; --ink:#241c4d; --muted:#7d7699;
+    --p1:#6d5efc; --p1d:#5646e0;
+    --p2:#ff5d8f; --p2d:#e6447a;
+    --accent:#00c2a8; --accent-d:#00a892;
+    --gold:#ffb703; --good:#20c997; --bad:#ff5a5f; --warn:#ff9f1c;
+    --tile:#f0edff; --shadow:0 12px 30px rgba(60,40,120,.18);
+    --radius:22px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; }
   body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: radial-gradient(1200px 800px at 50% -10%, #1e293b, var(--bg));
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    background-attachment:fixed;
+    min-height:100dvh;
+    overflow-x:hidden;
+    user-select:none; -webkit-user-select:none;
   }
-  .wrap { width: 100%; max-width: 560px; }
-  .card {
-    background: var(--card);
-    border: 1px solid #334155;
-    border-radius: 20px;
-    padding: 28px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-    position: relative;
-  }
-  h1 {
-    font-size: 26px;
-    text-align: center;
-    margin-bottom: 4px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .subtitle { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
-  input[type="text"] {
-    width: 100%;
-    padding: 12px 14px;
-    background: var(--card2);
-    border: 1px solid #3b4a63;
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 16px;
-    outline: none;
-  }
-  input[type="text"]:focus { border-color: var(--accent); }
-  .row { display: flex; gap: 12px; }
-  .row > div { flex: 1; }
-  .opts { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-  .opts button {
-    flex: 1; min-width: 70px; padding: 10px; border-radius: 10px; border: 1px solid #3b4a63;
-    background: var(--card2); color: var(--text); cursor: pointer; font-size: 14px;
-  }
-  .opts button small { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .opts button.active { border-color: var(--accent); background: #0b3a4d; color: var(--accent); }
-  .opts button.active small { color: var(--accent); }
-  button.primary {
-    width: 100%; margin-top: 22px; padding: 14px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    color: #0b1220; font-weight: 700; font-size: 16px;
-    border: none; border-radius: 12px; cursor: pointer;
-  }
-  button.primary:hover { filter: brightness(1.08); }
-  button.ghost {
-    width: 100%; margin-top: 10px; padding: 12px; background: transparent;
-    color: var(--muted); border: 1px solid #3b4a63; border-radius: 12px; cursor: pointer; font-size: 14px;
-  }
-  .rules {
-    margin-top: 20px; padding: 16px; background: var(--card2);
-    border-radius: 12px; font-size: 13px; color: var(--muted); line-height: 1.6;
-  }
-  .rules b { color: var(--text); }
+  .bgfx { position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+  .bgfx span { position:absolute; font-weight:800; color:rgba(255,255,255,.10); font-size:60px; animation:floaty linear infinite; }
+  @keyframes floaty { from{ transform:translateY(110vh) rotate(0);} to{ transform:translateY(-20vh) rotate(360deg);} }
 
-  .hidden { display: none; }
+  .app { position:relative; z-index:1; max-width:520px; margin:0 auto; min-height:100dvh;
+    padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 16px); display:flex; flex-direction:column; }
 
-  /* sound toggle */
-  .sound-btn {
-    position: absolute; top: 16px; right: 16px;
-    background: var(--card2); border: 1px solid #3b4a63; color: var(--text);
-    width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 18px;
-  }
+  .screen { display:none; animation:pop .35s ease both; flex:1; flex-direction:column; }
+  .screen.active { display:flex; }
+  @keyframes pop { from{ opacity:0; transform:translateY(14px) scale(.98);} to{ opacity:1; transform:none;} }
 
-  /* scoreboard */
-  .score-board {
-    display: flex; align-items: stretch; gap: 10px; margin-bottom: 16px;
-  }
-  .score-cell {
-    flex: 1; text-align: center; padding: 10px; border-radius: 12px;
-    background: var(--card2); border: 2px solid transparent;
-  }
-  .score-cell.p0.active { border-color: var(--accent); }
-  .score-cell.p1.active { border-color: var(--accent2); }
-  .score-cell .nm { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .score-cell .sc { font-size: 30px; font-weight: 800; }
-  .score-cell.p0 .sc { color: var(--accent); }
-  .score-cell.p1 .sc { color: var(--accent2); }
-  .score-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
-  .score-mid b { font-size: 16px; color: var(--text); }
+  .hud { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.25); border-radius:18px; padding:8px 10px; color:#fff; backdrop-filter:blur(6px); }
+  .hud .chip { display:flex; align-items:center; gap:5px; font-weight:700; font-size:13px; white-space:nowrap; }
+  .hud .lvlwrap { flex:1; min-width:60px; }
+  .hud .xpbar { height:8px; background:rgba(255,255,255,.25); border-radius:6px; overflow:hidden; margin-top:3px; }
+  .hud .xpfill { height:100%; width:0%; background:linear-gradient(90deg,#ffe08a,var(--gold)); transition:width .5s; }
+  .hud .icon-btn { background:rgba(255,255,255,.2); border:none; color:#fff; width:34px; height:34px; border-radius:12px; font-size:16px; cursor:pointer; }
 
-  .turn-banner { text-align: center; font-size: 13px; color: var(--muted); }
-  .turn-name { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 6px; }
-  .timer-ring { display: flex; justify-content: center; margin: 10px 0 4px; }
-  .timer-num { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; transition: color 0.2s; }
-  .bar-wrap { height: 10px; background: var(--card2); border-radius: 6px; overflow: hidden; margin: 4px 0 18px; }
-  .bar { height: 100%; width: 100%; background: linear-gradient(90deg, var(--good), var(--accent)); transition: width 0.1s linear; }
-  .word-box { text-align: center; padding: 22px; background: var(--card2); border-radius: 16px; margin-bottom: 8px; }
-  .word-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .word { font-size: 44px; font-weight: 800; letter-spacing: 8px; text-transform: uppercase; margin-top: 6px; color: var(--accent); }
-  .msg { min-height: 22px; text-align: center; font-size: 14px; margin: 10px 0; font-weight: 600; }
-  .msg.good { color: var(--good); }
-  .msg.bad { color: var(--bad); }
-  .used { margin-top: 14px; font-size: 12px; color: var(--muted); text-align: center; max-height: 60px; overflow-y: auto; }
-  .used span { display: inline-block; background: var(--card2); padding: 2px 8px; border-radius: 8px; margin: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .brand { text-align:center; margin:18px 0 6px; }
+  .tiles { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
+  .tiles b { display:inline-flex; align-items:center; justify-content:center; width:44px; height:52px; background:#fff;
+    color:var(--p1); font-size:28px; font-weight:900; border-radius:12px; box-shadow:0 6px 0 rgba(0,0,0,.12);
+    animation:tilebounce 1.6s ease-in-out infinite; }
+  .tiles b:nth-child(2){ animation-delay:.15s; color:var(--p2);} .tiles b:nth-child(3){ animation-delay:.3s; color:var(--accent);}
+  .tiles b:nth-child(4){ animation-delay:.45s; color:var(--gold);}
+  @keyframes tilebounce { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-9px);} }
+  .brand h1 { color:#fff; font-size:34px; margin:2px 0 0; letter-spacing:.5px; text-shadow:0 3px 0 rgba(0,0,0,.12); }
+  .brand p { color:rgba(255,255,255,.9); margin:4px 0 0; font-size:14px; font-weight:600; }
 
-  .winner-name { font-size: 30px; font-weight: 800; text-align: center; margin: 10px 0;
-    background: linear-gradient(90deg, var(--good), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-  .trophy { font-size: 60px; text-align: center; }
+  .modes { display:flex; flex-direction:column; gap:12px; margin-top:16px; }
+  .mode { display:flex; align-items:center; gap:14px; background:var(--card); border-radius:var(--radius);
+    padding:16px; box-shadow:var(--shadow); cursor:pointer; border:none; text-align:left; width:100%; transition:transform .12s; }
+  .mode:active { transform:scale(.97); }
+  .mode .emoji { font-size:30px; width:56px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:16px; flex-shrink:0; }
+  .mode.duel .emoji{ background:#efeaff;} .mode.solo .emoji{ background:#e6fbf6;} .mode.daily .emoji{ background:#fff2e0;}
+  .mode .txt h3 { margin:0; font-size:18px; }
+  .mode .txt p { margin:3px 0 0; font-size:13px; color:var(--muted); }
+  .mode .go { margin-left:auto; font-size:22px; color:var(--muted); }
+  .mode .badge { font-size:11px; font-weight:800; color:#fff; background:var(--p2); padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:middle; }
+
+  .rowbtns { display:flex; gap:10px; margin-top:14px; }
+  .rowbtns button { flex:1; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); color:#fff;
+    font-weight:700; font-size:14px; padding:12px; border-radius:16px; cursor:pointer; backdrop-filter:blur(6px); }
+  .rowbtns button:active { transform:scale(.97); }
+
+  .panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px; }
+  .panel h2 { margin:0 0 4px; font-size:22px; }
+  .panel .sub { color:var(--muted); font-size:13px; margin-bottom:14px; }
+  label { display:block; font-size:12px; color:var(--muted); font-weight:700; margin:14px 0 6px; text-transform:uppercase; letter-spacing:.5px; }
+  input[type=text] { width:100%; padding:14px; border:2px solid #eae6ff; border-radius:14px; font-size:16px; color:var(--ink); background:#faf9ff; outline:none; }
+  input[type=text]:focus { border-color:var(--p1); }
+  .seg { display:flex; gap:8px; flex-wrap:wrap; }
+  .seg button { flex:1; min-width:64px; padding:12px 6px; border:2px solid #eae6ff; background:#faf9ff; border-radius:14px;
+    font-weight:700; color:var(--ink); cursor:pointer; font-size:14px; }
+  .seg button small { display:block; font-size:10px; color:var(--muted); font-weight:600; margin-top:2px; }
+  .seg button.active { border-color:var(--p1); background:#efeaff; color:var(--p1d); }
+  .seg button.active small { color:var(--p1d); }
+
+  .btn { display:block; width:100%; border:none; border-radius:16px; padding:16px; font-size:17px; font-weight:800;
+    color:#fff; cursor:pointer; margin-top:16px; box-shadow:0 6px 0 var(--p1d); background:var(--p1); transition:transform .08s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 3px 0 var(--p1d); }
+  .btn.pink { background:var(--p2); box-shadow:0 6px 0 var(--p2d); }
+  .btn.teal { background:var(--accent); box-shadow:0 6px 0 var(--accent-d); }
+  .btn.ghost { background:#f2effd; color:var(--p1); box-shadow:0 6px 0 #ddd6f7; }
+  .backbtn { background:rgba(255,255,255,.2); border:none; color:#fff; font-weight:700; padding:8px 12px; border-radius:12px; cursor:pointer; font-size:14px; align-self:flex-start; margin-bottom:8px; }
+
+  .gtop { display:flex; align-items:center; justify-content:space-between; color:#fff; margin-bottom:8px; }
+  .scoreboard { display:flex; gap:8px; margin-bottom:10px; }
+  .scell { flex:1; background:rgba(255,255,255,.16); border:2px solid transparent; border-radius:16px; padding:8px; text-align:center; color:#fff; }
+  .scell.a.on, .scell.b.on { border-color:#fff; background:rgba(255,255,255,.28); }
+  .scell .nm { font-size:12px; opacity:.9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scell .sc { font-size:26px; font-weight:900; }
+  .midp { display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; min-width:52px; }
+  .midp b { font-size:18px; }
+
+  .turnpill { text-align:center; color:#fff; font-weight:800; font-size:16px; margin:2px 0 6px; }
+  .timer { text-align:center; }
+  .timer .num { font-size:40px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+  .tbar { height:12px; background:rgba(255,255,255,.25); border-radius:8px; overflow:hidden; margin:4px 0 12px; }
+  .tfill { height:100%; width:100%; background:linear-gradient(90deg,var(--good),#7bed9f); transition:width .08s linear; }
+
+  .wordcard { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px; text-align:center; }
+  .wordcard .lbl { font-size:11px; letter-spacing:1px; color:var(--muted); font-weight:800; text-transform:uppercase; }
+  .wtiles { display:flex; justify-content:center; gap:6px; margin-top:10px; }
+  .wtiles b { width:46px; height:56px; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:900;
+    background:var(--tile); color:var(--p1); border-radius:12px; text-transform:uppercase; box-shadow:0 4px 0 #d9d2fb; }
+  .wtiles b.pop { animation:tp .3s ease; }
+  @keyframes tp { 0%{ transform:scale(.6);} 60%{ transform:scale(1.15);} 100%{ transform:scale(1);} }
+  .combo { text-align:center; color:#fff; font-weight:800; height:20px; margin-top:8px; text-shadow:0 2px 4px rgba(0,0,0,.2); }
+
+  .answerRow { display:flex; gap:8px; margin-top:12px; }
+  .answerRow input { flex:1; text-align:center; text-transform:uppercase; letter-spacing:2px; font-weight:800; }
+  .answerRow button { background:var(--accent); color:#fff; border:none; border-radius:14px; padding:0 18px; font-size:20px; font-weight:900; box-shadow:0 5px 0 var(--accent-d); cursor:pointer; }
+  .answerRow button:active { transform:translateY(2px); box-shadow:0 3px 0 var(--accent-d); }
+  .msg { min-height:22px; text-align:center; color:#fff; font-weight:700; margin-top:10px; text-shadow:0 2px 4px rgba(0,0,0,.2); }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; margin-top:10px; max-height:74px; overflow:auto; }
+  .chips span { background:rgba(255,255,255,.2); color:#fff; padding:2px 9px; border-radius:20px; font-size:12px; text-transform:uppercase; letter-spacing:1px; font-weight:700; }
+
+  .big-emoji { font-size:66px; text-align:center; animation:tilebounce 1.2s ease infinite; }
+  .result-title { text-align:center; font-size:26px; font-weight:900; margin:6px 0; }
+  .statgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  .stat { background:#faf9ff; border-radius:14px; padding:12px; text-align:center; }
+  .stat .v { font-size:24px; font-weight:900; color:var(--p1); }
+  .stat .k { font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+  .lead { margin-top:10px; }
+  .lead .row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#faf9ff; border-radius:12px; margin-bottom:6px; }
+  .lead .row .rank { font-weight:900; color:var(--gold); width:24px; }
+  .lead .row .nm { font-weight:700; flex:1; }
+  .lead .row .v { font-weight:900; color:var(--p1); }
+
+  .ach { display:flex; align-items:center; gap:12px; padding:12px; background:#faf9ff; border-radius:14px; margin-bottom:8px; opacity:.5; }
+  .ach.got { opacity:1; background:#fff6e5; }
+  .ach .ico { font-size:26px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; }
+  .ach .t { font-weight:800; font-size:15px; } .ach .d { font-size:12px; color:var(--muted); }
+  .ach .lock { margin-left:auto; font-size:18px; }
+
+  .toastwrap { position:fixed; left:0; right:0; top:calc(env(safe-area-inset-top) + 12px); display:flex; flex-direction:column; align-items:center; gap:8px; z-index:50; pointer-events:none; }
+  .toast { background:var(--ink); color:#fff; padding:12px 18px; border-radius:16px; font-weight:700; box-shadow:0 10px 30px rgba(0,0,0,.3);
+    display:flex; align-items:center; gap:10px; animation:toastin .4s ease both; max-width:90vw; }
+  .toast .ti { font-size:22px; }
+  @keyframes toastin { from{ opacity:0; transform:translateY(-20px) scale(.9);} to{ opacity:1; transform:none;} }
+
+  #confetti { position:fixed; inset:0; z-index:40; pointer-events:none; }
+  .foot { text-align:center; color:rgba(255,255,255,.75); font-size:11px; margin-top:14px; font-weight:600; }
+  .shake { animation:shake .3s; }
+  @keyframes shake { 0%,100%{ transform:translateX(0);} 25%{ transform:translateX(-6px);} 75%{ transform:translateX(6px);} }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="bgfx" id="bgfx"></div>
+<canvas id="confetti"></canvas>
+<div class="toastwrap" id="toasts"></div>
 
-  <!-- ============ SETUP SCREEN ============ -->
-  <div id="setup" class="card">
-    <button class="sound-btn" id="soundBtnSetup" title="Toggle sound">🔊</button>
-    <h1>🔤 One-Letter Word Duel</h1>
-    <p class="subtitle">Two players. Change one letter. Beat the clock.</p>
+<div class="app">
 
-    <div class="row">
-      <div>
-        <label>Player A</label>
-        <input type="text" id="nameA" value="Player A" maxlength="14" />
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <div class="hud">
+      <div class="chip">🔥<span id="hudStreak">0</span></div>
+      <div class="chip lvlwrap">
+        <div>Lv <span id="hudLevel">1</span></div>
+        <div class="xpbar"><div class="xpfill" id="hudXp"></div></div>
       </div>
-      <div>
-        <label>Player B</label>
-        <input type="text" id="nameB" value="Player B" maxlength="14" />
+      <div class="chip">🪙<span id="hudCoins">0</span></div>
+      <button class="icon-btn" id="soundBtn" title="Sound">🔊</button>
+    </div>
+
+    <div class="brand">
+      <div class="tiles"><b>L</b><b>E</b><b>A</b><b>P</b></div>
+      <h1>LetterLeap</h1>
+      <p>Change one letter. Keep the word alive!</p>
+    </div>
+
+    <div class="modes">
+      <button class="mode duel" data-mode="duel">
+        <div class="emoji">🤝</div>
+        <div class="txt"><h3>Duel <span class="badge">2 Players</span></h3><p>Pass &amp; play — outlast your friend on the clock.</p></div>
+        <div class="go">›</div>
+      </button>
+      <button class="mode solo" data-mode="solo">
+        <div class="emoji">⚡</div>
+        <div class="txt"><h3>Solo Endless</h3><p>How long a chain can you build? Beat your best.</p></div>
+        <div class="go">›</div>
+      </button>
+      <button class="mode daily" data-mode="daily">
+        <div class="emoji">📅</div>
+        <div class="txt"><h3>Daily Challenge</h3><p>One word a day for everyone. Keep your streak!</p></div>
+        <div class="go">›</div>
+      </button>
+    </div>
+
+    <div class="rowbtns">
+      <button id="btnStats">📊 Stats</button>
+      <button id="btnAch">🏅 Badges</button>
+      <button id="btnHow">❔ How to play</button>
+    </div>
+    <div class="foot">Tip: add LetterLeap to your home screen to play like an app 📲</div>
+  </section>
+
+  <!-- SETUP -->
+  <section id="setup" class="screen">
+    <button class="backbtn" data-back>‹ Back</button>
+    <div class="panel">
+      <h2 id="setupTitle">Duel</h2>
+      <div class="sub" id="setupSub">Two players, one screen.</div>
+
+      <div id="nameFields">
+        <label>Player names</label>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="nameA" value="Player A" maxlength="12" />
+          <input type="text" id="nameB" value="Player B" maxlength="12" />
+        </div>
       </div>
-    </div>
 
-    <label>Word length</label>
-    <div class="opts" id="lenOpts">
-      <button data-len="3">3 letters</button>
-      <button data-len="4" class="active">4 letters</button>
-      <button data-len="5">5 letters</button>
-    </div>
-
-    <label>Difficulty (how fast the clock shrinks)</label>
-    <div class="opts" id="diffOpts">
-      <button data-diff="chill">Chill<small>12s · −0.3s</small></button>
-      <button data-diff="normal" class="active">Normal<small>10s · −0.5s</small></button>
-      <button data-diff="blitz">Blitz<small>8s · −0.75s</small></button>
-      <button data-diff="insane">Insane<small>7s · −1.0s</small></button>
-    </div>
-
-    <label>Match length (rounds needed to win)</label>
-    <div class="opts" id="targetOpts">
-      <button data-target="1">Single</button>
-      <button data-target="3" class="active">First to 3</button>
-      <button data-target="5">First to 5</button>
-    </div>
-
-    <label>Starting word (optional — blank picks a random one)</label>
-    <input type="text" id="startWord" placeholder="e.g. book" maxlength="5" />
-
-    <button class="primary" id="startBtn">Start Match</button>
-
-    <div class="rules">
-      <b>How to play:</b><br>
-      • You're given a word (e.g. <b>BOOK</b>).<br>
-      • Change <b>exactly one letter</b> to make a new real word — same length (BOOK → <b>TOOK</b>).<br>
-      • The other player continues from your word.<br>
-      • Each turn's clock shrinks as the round goes on, down to a <b>5-second</b> floor.<br>
-      • No repeating a word already used. Run out of time and you lose the round — first to the match target wins!
-    </div>
-  </div>
-
-  <!-- ============ GAME SCREEN ============ -->
-  <div id="game" class="card hidden">
-    <button class="sound-btn" id="soundBtnGame" title="Toggle sound">🔊</button>
-
-    <div class="score-board">
-      <div class="score-cell p0" id="cellA">
-        <div class="nm" id="sbNameA">Player A</div>
-        <div class="sc" id="sbScoreA">0</div>
+      <label>Word length</label>
+      <div class="seg" id="lenSeg">
+        <button data-len="3">3</button>
+        <button data-len="4" class="active">4</button>
+        <button data-len="5">5</button>
       </div>
-      <div class="score-mid"><span>ROUND</span><b id="sbRound">1</b><span id="sbTarget">to 3</span></div>
-      <div class="score-cell p1" id="cellB">
-        <div class="nm" id="sbNameB">Player B</div>
-        <div class="sc" id="sbScoreB">0</div>
+
+      <label>Difficulty · how fast the clock shrinks</label>
+      <div class="seg" id="diffSeg">
+        <button data-diff="chill">Chill<small>12s</small></button>
+        <button data-diff="normal" class="active">Normal<small>10s</small></button>
+        <button data-diff="blitz">Blitz<small>8s</small></button>
+        <button data-diff="insane">Insane<small>7s</small></button>
       </div>
+
+      <div id="matchWrap">
+        <label>Match length</label>
+        <div class="seg" id="targetSeg">
+          <button data-target="1">Single</button>
+          <button data-target="3" class="active">First to 3</button>
+          <button data-target="5">First to 5</button>
+        </div>
+      </div>
+
+      <button class="btn" id="playBtn">Start ▶</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <div class="gtop">
+      <button class="backbtn" data-back style="margin:0;">✕</button>
+      <div style="font-weight:800;" id="modeLabel">Duel</div>
+      <button class="icon-btn" id="soundBtn2" style="background:rgba(255,255,255,.2)">🔊</button>
     </div>
 
-    <div class="turn-banner">Now playing</div>
-    <div class="turn-name" id="turnName">Player A</div>
-
-    <div class="timer-ring"><span class="timer-num" id="timerNum">10.0</span></div>
-    <div class="bar-wrap"><div class="bar" id="bar"></div></div>
-
-    <div class="word-box">
-      <div class="word-label">Current word</div>
-      <div class="word" id="currentWord">BOOK</div>
+    <div class="scoreboard" id="scoreboard">
+      <div class="scell a" id="cellA"><div class="nm" id="nmA">Player A</div><div class="sc" id="scA">0</div></div>
+      <div class="midp"><span id="midTop">ROUND</span><b id="midMain">1</b><span id="midBot">to 3</span></div>
+      <div class="scell b" id="cellB"><div class="nm" id="nmB">Player B</div><div class="sc" id="scB">0</div></div>
     </div>
 
-    <label for="answer" style="text-align:center;">Type a new word (change one letter)</label>
-    <input type="text" id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="your word…" />
+    <div class="turnpill" id="turnPill">Player A's turn</div>
+    <div class="timer"><div class="num" id="tnum">10.0</div></div>
+    <div class="tbar"><div class="tfill" id="tfill"></div></div>
 
+    <div class="wordcard">
+      <div class="lbl">Current word</div>
+      <div class="wtiles" id="wtiles"></div>
+    </div>
+    <div class="combo" id="comboLine"></div>
+
+    <div class="answerRow">
+      <input type="text" id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="new word" />
+      <button id="goBtn">➤</button>
+    </div>
     <div class="msg" id="msg"></div>
-    <div class="used" id="usedList"></div>
-  </div>
+    <div class="chips" id="chips"></div>
+  </section>
 
-  <!-- ============ ROUND OVER ============ -->
-  <div id="roundOver" class="card hidden">
-    <div class="trophy">⏱️</div>
-    <p class="subtitle" style="margin-top:8px;">Round over</p>
-    <div class="winner-name" id="roundWinner">Player B</div>
-    <div class="msg" id="roundReason" style="color:var(--muted);"></div>
-    <div class="score-board" style="margin-top:6px;">
-      <div class="score-cell p0"><div class="nm" id="roNameA">Player A</div><div class="sc" id="roScoreA">0</div></div>
-      <div class="score-mid"><span>SCORE</span></div>
-      <div class="score-cell p1"><div class="nm" id="roNameB">Player B</div><div class="sc" id="roScoreB">0</div></div>
+  <!-- RESULTS -->
+  <section id="result" class="screen">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div class="big-emoji" id="resEmoji">🏆</div>
+      <div class="result-title" style="color:#fff;" id="resTitle">Player A wins!</div>
+      <div class="panel">
+        <div id="resBody"></div>
+        <div class="statgrid" id="resStats"></div>
+        <button class="btn teal" id="againBtn">Play again ▶</button>
+        <button class="btn pink" id="shareBtn">📤 Share result</button>
+        <button class="btn ghost" id="homeBtn">🏠 Home</button>
+      </div>
     </div>
-    <div class="word-box">
-      <div class="word-label">Words played this round</div>
-      <div class="used" id="roundChain" style="max-height:100px;"></div>
-    </div>
-    <button class="primary" id="nextRoundBtn">Next Round ▶</button>
-  </div>
+  </section>
 
-  <!-- ============ MATCH OVER ============ -->
-  <div id="matchOver" class="card hidden">
-    <div class="trophy">🏆</div>
-    <p class="subtitle" style="margin-top:8px;">Champion</p>
-    <div class="winner-name" id="champName">Player B</div>
-    <div class="msg" id="champReason" style="color:var(--muted);"></div>
-    <div class="score-board" style="margin-top:6px;">
-      <div class="score-cell p0"><div class="nm" id="moNameA">Player A</div><div class="sc" id="moScoreA">0</div></div>
-      <div class="score-mid"><span>FINAL</span></div>
-      <div class="score-cell p1"><div class="nm" id="moNameB">Player B</div><div class="sc" id="moScoreB">0</div></div>
+  <!-- STATS -->
+  <section id="stats" class="screen">
+    <button class="backbtn" data-back>‹ Back</button>
+    <div class="panel">
+      <h2>📊 Your Stats</h2>
+      <div class="sub">Progress is saved on this device.</div>
+      <div class="statgrid" id="statGrid"></div>
+      <h2 style="margin-top:18px; font-size:18px;">🏆 Family Leaderboard</h2>
+      <div class="sub">Top solo scores on this device.</div>
+      <div class="lead" id="leadList"></div>
     </div>
-    <button class="primary" id="rematchBtn">Rematch (same players)</button>
-    <button class="ghost" id="newMatchBtn">New setup</button>
-  </div>
+  </section>
+
+  <!-- ACHIEVEMENTS -->
+  <section id="ach" class="screen">
+    <button class="backbtn" data-back>‹ Back</button>
+    <div class="panel">
+      <h2>🏅 Badges</h2>
+      <div class="sub" id="achCount">0 unlocked</div>
+      <div id="achList"></div>
+    </div>
+  </section>
+
+  <!-- HOW TO PLAY -->
+  <section id="how" class="screen">
+    <button class="backbtn" data-back>‹ Back</button>
+    <div class="panel">
+      <h2>❔ How to play</h2>
+      <div style="line-height:1.7; color:var(--ink); font-size:15px; margin-top:8px;">
+        <p>🔤 You get a word, like <b>BOOK</b>.</p>
+        <p>✏️ Change <b>exactly one letter</b> to make a new real word of the same length — <b>BOOK → TOOK</b>.</p>
+        <p>🔁 In <b>Duel</b>, the other player continues from your word. In <b>Solo</b> &amp; <b>Daily</b>, keep the chain going yourself.</p>
+        <p>⏱️ Each turn's clock shrinks as you go, down to <b>5 seconds</b>.</p>
+        <p>🚫 No repeating a word already used.</p>
+        <p>⭐ Fast moves and longer words score more — build <b>combos</b> to earn coins, XP and levels!</p>
+      </div>
+      <button class="btn" data-back-btn>Got it 👍</button>
+    </div>
+  </section>
 
 </div>
 
 <script src="words.js"></script>
 <script>
-(function () {
+(function(){
   "use strict";
+  var WORDS = (window.WORD_LIST||[]).map(function(w){return w.toLowerCase();});
+  var DICT = new Set(WORDS);
+  var BY_LEN = {}; DICT.forEach(function(w){(BY_LEN[w.length]=BY_LEN[w.length]||[]).push(w);});
+  var $ = function(id){return document.getElementById(id);};
+  var DIFF = { chill:{start:12,step:.3}, normal:{start:10,step:.5}, blitz:{start:8,step:.75}, insane:{start:7,step:1} };
+  var MIN_LIMIT = 5;
 
-  var DICT = new Set(WORD_LIST.map(function (w) { return w.toLowerCase(); }));
-  var BY_LEN = {};
-  DICT.forEach(function (w) { (BY_LEN[w.length] = BY_LEN[w.length] || []).push(w); });
+  var DEFAULT = { xp:0, level:1, coins:0, streak:0, lastDay:null, sound:true,
+    stats:{ games:0, words:0, wins:0, bestChain:0, bestSolo:0, dailyBest:0 }, ach:{}, lead:[] };
+  var P = load();
+  function load(){ try{ var s=JSON.parse(localStorage.getItem('letterleap')); return Object.assign({}, DEFAULT, s, {stats:Object.assign({},DEFAULT.stats,(s&&s.stats)||{}), ach:(s&&s.ach)||{}, lead:(s&&s.lead)||[]}); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
+  function save(){ try{ localStorage.setItem('letterleap', JSON.stringify(P)); }catch(e){} }
+  function todayKey(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+  function xpForLevel(l){ return 60 + (l-1)*40; }
 
-  var DIFF = {
-    chill:  { start: 12, step: 0.3 },
-    normal: { start: 10, step: 0.5 },
-    blitz:  { start: 8,  step: 0.75 },
-    insane: { start: 7,  step: 1.0 }
-  };
-  var MIN_LIMIT = 5.0;
-
-  // ---------- tiny WebAudio sound engine (no files, works offline) ----------
-  var Sound = (function () {
-    var ctx = null, enabled = true;
-    function ac() {
-      if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ctx = null; } }
-      return ctx;
-    }
-    function tone(freq, start, dur, type, vol) {
-      var c = ac(); if (!c) return;
-      var o = c.createOscillator(), g = c.createGain();
-      o.type = type || "sine";
-      o.frequency.value = freq;
-      var t0 = c.currentTime + start;
-      g.gain.setValueAtTime(0, t0);
-      g.gain.linearRampToValueAtTime(vol == null ? 0.2 : vol, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g); g.connect(c.destination);
-      o.start(t0); o.stop(t0 + dur + 0.02);
-    }
-    return {
-      setEnabled: function (v) { enabled = v; },
-      isEnabled: function () { return enabled; },
-      resume: function () { var c = ac(); if (c && c.state === "suspended") c.resume(); },
-      ok:    function () { if (!enabled) return; tone(523, 0, 0.12, "triangle"); tone(784, 0.09, 0.16, "triangle"); },
-      error: function () { if (!enabled) return; tone(160, 0, 0.22, "sawtooth", 0.15); },
-      tick:  function () { if (!enabled) return; tone(880, 0, 0.05, "square", 0.08); },
-      timeup:function () { if (!enabled) return; tone(400, 0, 0.18, "sawtooth", 0.2); tone(250, 0.16, 0.3, "sawtooth", 0.2); },
-      round: function () { if (!enabled) return; [523,659,784].forEach(function (f,i){ tone(f, i*0.1, 0.2, "triangle"); }); },
-      match: function () { if (!enabled) return; [523,659,784,1047].forEach(function (f,i){ tone(f, i*0.12, 0.3, "triangle"); }); }
-    };
+  var Sound = (function(){ var ctx=null;
+    function ac(){ if(!ctx){ try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){ctx=null;} } return ctx; }
+    function t(f,s,d,type,v){ var c=ac(); if(!c)return; var o=c.createOscillator(),g=c.createGain(); o.type=type||'sine'; o.frequency.value=f;
+      var t0=c.currentTime+s; g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(v==null?.2:v,t0+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+d);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0+d+.02); }
+    return { resume:function(){var c=ac(); if(c&&c.state==='suspended')c.resume();},
+      ok:function(){ if(!P.sound)return; t(523,0,.12,'triangle'); t(784,.08,.15,'triangle'); },
+      big:function(){ if(!P.sound)return; [523,659,784,1047].forEach(function(f,i){t(f,i*.09,.22,'triangle');}); },
+      err:function(){ if(!P.sound)return; t(150,0,.2,'sawtooth',.14); },
+      tick:function(){ if(!P.sound)return; t(880,0,.05,'square',.07); },
+      up:function(){ if(!P.sound)return; [659,880,1175].forEach(function(f,i){t(f,i*.08,.2,'square',.15);}); },
+      coin:function(){ if(!P.sound)return; t(988,0,.08,'square',.12); t(1319,.06,.1,'square',.12); } };
   })();
+  function haptic(ms){ if(navigator.vibrate){ try{navigator.vibrate(ms);}catch(e){} } }
 
-  var $ = function (id) { return document.getElementById(id); };
-  var screens = { setup: $("setup"), game: $("game"), roundOver: $("roundOver"), matchOver: $("matchOver") };
-  function show(name) { Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("hidden", k !== name); }); }
+  var history=['home'];
+  function go(id, push){ document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.id===id);});
+    if(push!==false) history.push(id); window.scrollTo(0,0); }
+  function back(){ if(history.length>1){ history.pop(); } var prev=history[history.length-1]||'home';
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.id===prev);}); }
+  document.querySelectorAll('[data-back]').forEach(function(b){ b.addEventListener('click',function(){ stopTimer(); back(); }); });
+  document.querySelectorAll('[data-back-btn]').forEach(function(b){ b.addEventListener('click',back); });
 
-  // setup selections
-  var chosenLen = 4, chosenDiff = "normal", chosenTarget = 3;
-  function wireOpts(containerId, attr, cb) {
-    var c = $(containerId);
-    c.querySelectorAll("button").forEach(function (b) {
-      b.addEventListener("click", function () {
-        c.querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
-        b.classList.add("active");
-        cb(b.dataset[attr]);
-      });
-    });
+  function renderHUD(){ $('hudStreak').textContent=P.streak; $('hudLevel').textContent=P.level; $('hudCoins').textContent=P.coins;
+    var need=xpForLevel(P.level); $('hudXp').style.width=Math.min(100,(P.xp/need)*100)+'%'; }
+
+  function addXP(n){ P.xp+=n; var leveled=false; while(P.xp>=xpForLevel(P.level)){ P.xp-=xpForLevel(P.level); P.level++; leveled=true; }
+    if(leveled){ Sound.up(); toast('⭐','Level '+P.level+'! Keep going!'); confetti(); haptic([20,40,20]); check('level5'); } renderHUD(); save(); }
+  function addCoins(n){ P.coins+=n; renderHUD(); save(); }
+
+  function toast(icon,text){ var el=document.createElement('div'); el.className='toast'; el.innerHTML='<span class="ti">'+icon+'</span><span>'+text+'</span>';
+    $('toasts').appendChild(el); setTimeout(function(){ el.style.transition='opacity .4s,transform .4s'; el.style.opacity='0'; el.style.transform='translateY(-16px)'; setTimeout(function(){el.remove();},400); },2200); }
+  var cc=$('confetti'), cx=cc.getContext('2d'), parts=[];
+  function sizeCanvas(){ cc.width=innerWidth; cc.height=innerHeight; } sizeCanvas(); addEventListener('resize',sizeCanvas);
+  function confetti(){ var colors=['#6d5efc','#ff5d8f','#00c2a8','#ffb703','#20c997']; for(var i=0;i<90;i++){ parts.push({x:innerWidth/2,y:innerHeight*.35,
+    vx:(Math.random()-.5)*12, vy:Math.random()*-12-4, g:.4, s:Math.random()*8+4, c:colors[i%colors.length], a:1, rot:Math.random()*6}); } if(!raf) loop(); }
+  var raf=null; function loop(){ cx.clearRect(0,0,cc.width,cc.height); parts.forEach(function(p){ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.a-=.008; p.rot+=.2;
+      cx.save(); cx.globalAlpha=Math.max(0,p.a); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.c; cx.fillRect(-p.s/2,-p.s/2,p.s,p.s); cx.restore(); });
+    parts=parts.filter(function(p){return p.a>0 && p.y<cc.height+40;}); if(parts.length){ raf=requestAnimationFrame(loop); } else { raf=null; cx.clearRect(0,0,cc.width,cc.height);} }
+
+  (function(){ var L='LETTERLEAP', box=$('bgfx'); for(var i=0;i<14;i++){ var s=document.createElement('span'); s.textContent=L[i%L.length];
+    s.style.left=(Math.random()*100)+'%'; s.style.fontSize=(Math.random()*40+30)+'px'; s.style.animationDuration=(Math.random()*18+14)+'s';
+    s.style.animationDelay=(-Math.random()*20)+'s'; box.appendChild(s);} })();
+
+  function randWord(len){ var pool=BY_LEN[len]||BY_LEN[4]; return pool[Math.floor(Math.random()*pool.length)]; }
+  function oneOff(a,b){ if(a.length!==b.length) return false; var d=0; for(var i=0;i<a.length;i++){ if(a[i]!==b[i]){d++; if(d>1)return false;} } return d===1; }
+  function hasMove(w){ for(var i=0;i<w.length;i++){ for(var c=97;c<123;c++){ var ch=String.fromCharCode(c); if(ch===w[i])continue; var cand=w.slice(0,i)+ch+w.slice(i+1); if(DICT.has(cand)) return true; } } return false; }
+  function dailyWord(){ var k=todayKey(), h=0; for(var i=0;i<k.length;i++){ h=(h*31+k.charCodeAt(i))>>>0; } var pool=BY_LEN[4]; var w=pool[h%pool.length];
+    var guard=0; while(!hasMove(w) && guard++<50){ h=(h*31+7)>>>0; w=pool[h%pool.length]; } return w; }
+
+  var sel={ len:4, diff:'normal', target:3, mode:'duel' };
+  function wireSeg(id,attr,cb){ var c=$(id); c.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ c.querySelectorAll('button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); cb(b.dataset[attr]); }); }); }
+  wireSeg('lenSeg','len',function(v){sel.len=+v;}); wireSeg('diffSeg','diff',function(v){sel.diff=v;}); wireSeg('targetSeg','target',function(v){sel.target=+v;});
+
+  document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); sel.mode=m.dataset.mode; openSetup(); }); });
+  function openSetup(){
+    var t=$('setupTitle'), s=$('setupSub');
+    if(sel.mode==='duel'){ t.textContent='🤝 Duel'; s.textContent='Two players, one screen. Last one standing wins.'; $('nameFields').style.display=''; $('matchWrap').style.display=''; }
+    else if(sel.mode==='solo'){ t.textContent='⚡ Solo Endless'; s.textContent='Build the longest chain before the clock beats you.'; $('nameFields').style.display='none'; $('matchWrap').style.display='none'; }
+    else { t.textContent='📅 Daily Challenge'; s.textContent="Everyone gets the same word today. Keep your streak alive!"; $('nameFields').style.display='none'; $('matchWrap').style.display='none'; }
+    go('setup');
   }
-  wireOpts("lenOpts", "len", function (v) { chosenLen = parseInt(v, 10); });
-  wireOpts("diffOpts", "diff", function (v) { chosenDiff = v; });
-  wireOpts("targetOpts", "target", function (v) { chosenTarget = parseInt(v, 10); });
+  $('playBtn').addEventListener('click',startGame);
 
-  // ---------- match + round state ----------
-  var match = null;   // { names, scores, target, diff, roundNum, firstPlayer }
-  var round = null;   // { turn, current, used, limit, remaining, count }
-  var ticker = null, lastTickSecond = null;
-
-  function pickRandomWord(len) {
-    var pool = BY_LEN[len] || BY_LEN[4];
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-
-  function oneLetterChanged(a, b) {
-    if (a.length !== b.length) return false;
-    var diff = 0;
-    for (var i = 0; i < a.length; i++) { if (a[i] !== b[i]) { diff++; if (diff > 1) return false; } }
-    return diff === 1;
-  }
-
-  function startMatch() {
+  var G=null, ticker=null, lastSec=null;
+  function startGame(){
     Sound.resume();
-    var nameA = ($("nameA").value.trim() || "Player A");
-    var nameB = ($("nameB").value.trim() || "Player B");
-    var raw = $("startWord").value.trim().toLowerCase();
-    var firstStart = null;
-    if (raw) {
-      if (!/^[a-z]+$/.test(raw)) { alert("Starting word must be letters only."); return; }
-      if (!DICT.has(raw)) { alert("\"" + raw + "\" isn't in the game's dictionary. Try another, or leave it blank."); return; }
-      firstStart = raw;
-      chosenLen = raw.length;
+    var diff=DIFF[sel.diff];
+    if(sel.mode==='duel'){
+      G={ mode:'duel', names:[($('nameA').value.trim()||'Player A'),($('nameB').value.trim()||'Player B')],
+        scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 };
+      $('modeLabel').textContent='Duel'; $('scoreboard').style.display='flex'; nextRound();
+    } else {
+      var len = sel.mode==='daily' ? 4 : sel.len;
+      var start = sel.mode==='daily' ? dailyWord() : randWord(len);
+      G={ mode:sel.mode, len:len, diff:diff, current:start, used:[start], limit:diff.start, remaining:diff.start, score:0, chain:0, combo:0, turn:0 };
+      $('modeLabel').textContent = sel.mode==='daily'?'Daily':'Solo';
+      $('scoreboard').style.display='none';
+      go('game'); renderGame(); startTimer(); $('answer').focus();
     }
-    match = {
-      names: [nameA, nameB],
-      scores: [0, 0],
-      target: chosenTarget,
-      diff: DIFF[chosenDiff],
-      roundNum: 0,
-      firstPlayer: 0,
-      firstStartWord: firstStart,
-      len: chosenLen
-    };
-    nextRound();
+  }
+  function nextRound(){
+    G.roundNum++; var starter=(G.firstPlayer+G.roundNum-1)%2; var start=randWord(G.len);
+    G.turn=starter; G.current=start; G.used=[start]; G.limit=G.diff.start; G.remaining=G.diff.start; G.combo=0; G.chain=0;
+    go('game', document.getElementById('game').classList.contains('active')?false:true); renderGame(); startTimer(); $('answer').focus();
   }
 
-  function nextRound() {
-    match.roundNum += 1;
-    // round 1 may use a custom starting word; later rounds are random
-    var startWord = (match.roundNum === 1 && match.firstStartWord) ? match.firstStartWord : pickRandomWord(match.len);
-    // alternate who starts each round
-    var starter = (match.firstPlayer + (match.roundNum - 1)) % 2;
-    round = {
-      turn: starter,
-      current: startWord,
-      used: [startWord],
-      limit: match.diff.start,
-      remaining: match.diff.start,
-      count: 1
-    };
-    show("game");
-    renderScore();
-    renderTurn();
-    $("answer").focus();
+  function renderGame(){
+    if(G.mode==='duel'){
+      $('nmA').textContent=G.names[0]; $('nmB').textContent=G.names[1];
+      $('scA').textContent=G.scores[0]; $('scB').textContent=G.scores[1];
+      $('midTop').textContent='ROUND'; $('midMain').textContent=G.roundNum; $('midBot').textContent = G.target===1?'single':'to '+G.target;
+      $('cellA').classList.toggle('on',G.turn===0); $('cellB').classList.toggle('on',G.turn===1);
+      $('turnPill').textContent = G.names[G.turn]+"'s turn";
+    } else {
+      $('turnPill').innerHTML = (G.mode==='daily'?'📅 Daily · ':'⚡ ') + 'Score <b>'+G.score+'</b> · Chain '+G.chain;
+    }
+    renderTiles(); $('answer').value=''; setMsg(''); renderChips(); renderCombo();
+  }
+  function renderTiles(pop){ var w=G.current, h=''; for(var i=0;i<w.length;i++){ h+='<b'+(pop?' class="pop"':'')+'>'+w[i]+'</b>'; } $('wtiles').innerHTML=h; }
+  function renderChips(){ $('chips').innerHTML=G.used.slice(-14).map(function(w){return '<span>'+w+'</span>';}).join(''); }
+  function renderCombo(){ $('comboLine').textContent = G.combo>=2 ? ('🔥 Combo x'+G.combo) : ''; }
+  function setMsg(t){ $('msg').textContent=t; }
+
+  function startTimer(){ stopTimer(); G.remaining=G.limit; lastSec=Math.ceil(G.remaining); updTimer(); var last=performance.now();
+    ticker=setInterval(function(){ var now=performance.now(); G.remaining-=(now-last)/1000; last=now;
+      if(G.remaining<=0){ G.remaining=0; updTimer(); stopTimer(); timeUp(); return; }
+      var sec=Math.ceil(G.remaining); if(sec<=3&&sec!==lastSec){ lastSec=sec; Sound.tick(); } updTimer(); },50); }
+  function stopTimer(){ if(ticker){ clearInterval(ticker); ticker=null; } }
+  function updTimer(){ var t=G.remaining; $('tnum').textContent=t.toFixed(1); var pct=Math.max(0,(t/G.limit)*100); $('tfill').style.width=pct+'%';
+    var hi=t>G.limit*.5, mid=t>G.limit*.25; $('tfill').style.background=hi?'linear-gradient(90deg,var(--good),#7bed9f)':(mid?'var(--warn)':'var(--bad)'); }
+
+  function timeUp(){ Sound.err(); haptic(200); if(G.mode==='duel'){ var loser=G.turn; endDuelRound(1-loser, G.names[loser]+' ran out of time!'); } else { endSolo(); } }
+
+  function submit(){
+    if(!G) return; var guess=$('answer').value.trim().toLowerCase();
+    if(!guess) return;
+    var fail=null;
+    if(!/^[a-z]+$/.test(guess)) fail='Letters only';
+    else if(guess===G.current) fail='Change one letter';
+    else if(guess.length!==G.current.length) fail='Must be '+G.current.length+' letters';
+    else if(!oneOff(G.current,guess)) fail='Change exactly ONE letter';
+    else if(G.used.indexOf(guess)!==-1) fail='"'+guess.toUpperCase()+'" already used';
+    else if(!DICT.has(guess)) fail='"'+guess.toUpperCase()+'" isn\'t a known word';
+    if(fail){ Sound.err(); haptic(60); setMsg(fail); var wc=$('wtiles'); wc.classList.remove('shake'); void wc.offsetWidth; wc.classList.add('shake'); return; }
+
+    var used=G.limit-G.remaining, fast=Math.max(0, G.remaining/G.limit);
+    var pts=10 + 5*(G.current.length-3) + Math.round(fast*15);
+    G.combo=(G.combo||0)+1; var mult=1+(G.combo-1)*0.1; pts=Math.round(pts*mult);
+    Sound.ok(); haptic(15);
+    G.current=guess; G.used.push(guess); G.chain=(G.chain||0)+1; P.stats.words++;
+    if(G.mode==='duel'){ G.turn=1-G.turn; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(4); addCoins(1); renderGame(); renderTiles(true); startTimer(); }
+    else { G.score+=pts; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true); startTimer(); }
+    if(G.combo===5){ toast('🔥','5 combo! On fire!'); }
+    check('speed', used); check('chain', G.chain); save();
+  }
+  $('goBtn').addEventListener('click',submit);
+  $('answer').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
+
+  function endDuelRound(winnerIdx, reason){
+    stopTimer(); G.scores[winnerIdx]++;
+    if(G.scores[winnerIdx]>=G.target){
+      P.stats.games++; P.stats.wins++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain);
+      addXP(20); addCoins(5); check('firstwin'); bumpStreak(); save();
+      showResult({ emoji:'🏆', title:G.names[winnerIdx]+' wins the match!',
+        body:'<div style="text-align:center;color:var(--muted)">'+reason+'</div>',
+        stats:[['Final', G.scores[0]+' – '+G.scores[1]],['Words this round', G.chain]], mode:'duel' });
+      confetti(); Sound.big(); haptic([30,50,30]);
+    } else {
+      toast('🎉', G.names[winnerIdx]+' takes the round!');
+      showResult({ emoji:'⏱️', title:G.names[winnerIdx]+' wins the round',
+        body:'<div style="text-align:center;color:var(--muted)">'+reason+'</div>',
+        stats:[['Score', G.scores[0]+' – '+G.scores[1]],['Round', G.roundNum]], mode:'duel-continue' });
+      Sound.big();
+    }
+  }
+  function endSolo(){
+    stopTimer(); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain);
+    var isBest=false;
+    if(G.mode==='daily'){ if(G.score>P.stats.dailyBest){ P.stats.dailyBest=G.score; } bumpStreak(); }
+    if(G.score>P.stats.bestSolo){ P.stats.bestSolo=G.score; isBest=true; }
+    addLeader(G.score);
+    var coins=Math.max(1,Math.round(G.score/40));
+    addXP(10); addCoins(coins); check('solo25', G.chain); save();
+    showResult({ emoji: isBest?'🥇':'⚡', title: isBest?'New personal best!':'Chain over!',
+      body:'<div style="text-align:center;color:var(--muted)">You built a chain of '+G.chain+' words.</div>',
+      stats:[['Score', G.score],['Chain', G.chain],['Best', Math.max(P.stats.bestSolo,G.score)],['Coins +', coins]], mode:'solo' });
+    if(isBest){ confetti(); Sound.big(); haptic([30,50,30]); } else { Sound.up(); }
+  }
+  function addLeader(score){ var nm=(localStorage.getItem('ll_lastname')||'You'); P.lead.push({name:nm,score:score,d:todayKey()});
+    P.lead.sort(function(a,b){return b.score-a.score;}); P.lead=P.lead.slice(0,10); }
+
+  function bumpStreak(){ var t=todayKey(); if(P.lastDay===t){ return; } var y=new Date(); y.setDate(y.getDate()-1);
+    var yk=y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate(); P.streak=(P.lastDay===yk)?P.streak+1:1; P.lastDay=t; renderHUD();
+    if(P.streak>=3) check('streak3'); if(P.streak>=7) check('streak7'); toast('🔥','Day '+P.streak+' streak!'); }
+
+  var resultCtx=null;
+  function showResult(r){
+    resultCtx=r; $('resEmoji').textContent=r.emoji; $('resTitle').textContent=r.title; $('resBody').innerHTML=r.body||'';
+    $('resStats').innerHTML=(r.stats||[]).map(function(s){return '<div class="stat"><div class="v">'+s[1]+'</div><div class="k">'+s[0]+'</div></div>';}).join('');
+    $('againBtn').textContent = r.mode==='duel-continue' ? 'Next round ▶' : 'Play again ▶';
+    go('result');
+  }
+  $('againBtn').addEventListener('click',function(){ if(!resultCtx) return;
+    if(resultCtx.mode==='duel-continue'){ nextRound(); }
+    else if(resultCtx.mode==='duel'){ G.scores=[0,0]; G.roundNum=0; G.firstPlayer=(G.firstPlayer+1)%2; nextRound(); }
+    else { startGame(); } });
+  $('homeBtn').addEventListener('click',function(){ history=['home']; go('home',false); renderHUD(); });
+  $('shareBtn').addEventListener('click',function(){ var txt='🔤 LetterLeap — '+$('resTitle').textContent+' '+((resultCtx&&resultCtx.stats)||[]).map(function(s){return s[0]+': '+s[1];}).join(', ')+' — play at '+location.href;
+    if(navigator.share){ navigator.share({title:'LetterLeap',text:txt,url:location.href}).catch(function(){}); }
+    else { try{ navigator.clipboard.writeText(txt); toast('📋','Result copied — paste it anywhere!'); }catch(e){ toast('📤','Share not supported'); } } });
+
+  var ACH=[
+    {id:'firstwin', ico:'🥇', t:'First Victory', d:'Win a duel match'},
+    {id:'solo25', ico:'⚡', t:'Chain Master', d:'Reach a chain of 12 in one game'},
+    {id:'chain', ico:'🔗', t:'Word Weaver', d:'Reach a chain of 20'},
+    {id:'speed', ico:'💨', t:'Speed Demon', d:'Answer in under 1.5s'},
+    {id:'streak3', ico:'🔥', t:'On a Roll', d:'3-day streak'},
+    {id:'streak7', ico:'📅', t:'Weekly Warrior', d:'7-day streak'},
+    {id:'level5', ico:'🌟', t:'Rising Star', d:'Reach level 5'},
+  ];
+  function check(kind, val){
+    if(kind==='firstwin') unlock('firstwin');
+    if(kind==='solo25' && val>=12) unlock('solo25');
+    if(kind==='chain' && val>=20) unlock('chain');
+    if(kind==='speed' && val!=null && val<1.5) unlock('speed');
+    if(kind==='streak3') unlock('streak3');
+    if(kind==='streak7') unlock('streak7');
+    if(kind==='level5' && P.level>=5) unlock('level5');
+  }
+  function unlock(id){ if(P.ach[id]) return; P.ach[id]=true; save(); var a=ACH.filter(function(x){return x.id===id;})[0];
+    if(a){ toast(a.ico,'Badge unlocked: '+a.t); confetti(); Sound.up(); haptic([20,30,20]); } }
+  function renderAch(){ var got=0; $('achList').innerHTML=ACH.map(function(a){ var has=!!P.ach[a.id]; if(has)got++;
+    return '<div class="ach '+(has?'got':'')+'"><div class="ico">'+a.ico+'</div><div><div class="t">'+a.t+'</div><div class="d">'+a.d+'</div></div><div class="lock">'+(has?'✅':'🔒')+'</div></div>'; }).join('');
+    $('achCount').textContent=got+' of '+ACH.length+' unlocked'; }
+
+  function renderStats(){
+    var s=P.stats; var grid=[['Level',P.level],['🔥 Streak',P.streak],['🪙 Coins',P.coins],['Games',s.games],
+      ['Words made',s.words],['Duel wins',s.wins],['Best solo',s.bestSolo],['Best chain',s.bestChain]];
+    $('statGrid').innerHTML=grid.map(function(g){return '<div class="stat"><div class="v">'+g[1]+'</div><div class="k">'+g[0]+'</div></div>';}).join('');
+    var L=P.lead.slice(0,5); $('leadList').innerHTML = L.length ? L.map(function(r,i){ return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="nm">'+r.name+'</div><div class="v">'+r.score+'</div></div>'; }).join('') : '<div class="sub">Play a Solo game to get on the board!</div>';
   }
 
-  function renderScore() {
-    $("sbNameA").textContent = match.names[0];
-    $("sbNameB").textContent = match.names[1];
-    $("sbScoreA").textContent = match.scores[0];
-    $("sbScoreB").textContent = match.scores[1];
-    $("sbRound").textContent = match.roundNum;
-    $("sbTarget").textContent = match.target === 1 ? "single" : "to " + match.target;
-    $("cellA").classList.toggle("active", round.turn === 0);
-    $("cellB").classList.toggle("active", round.turn === 1);
-  }
+  $('btnStats').addEventListener('click',function(){ renderStats(); go('stats'); });
+  $('btnAch').addEventListener('click',function(){ renderAch(); go('ach'); });
+  $('btnHow').addEventListener('click',function(){ go('how'); });
+  function toggleSound(){ P.sound=!P.sound; save(); if(P.sound)Sound.resume(); var ic=P.sound?'🔊':'🔇'; $('soundBtn').textContent=ic; $('soundBtn2').textContent=ic; }
+  $('soundBtn').addEventListener('click',toggleSound); $('soundBtn2').addEventListener('click',toggleSound);
 
-  function renderTurn() {
-    $("turnName").textContent = match.names[round.turn];
-    $("turnName").style.color = round.turn === 0 ? "var(--accent)" : "var(--accent2)";
-    $("currentWord").textContent = round.current;
-    $("answer").value = "";
-    setMsg("", "");
-    renderUsed();
-    $("cellA").classList.toggle("active", round.turn === 0);
-    $("cellB").classList.toggle("active", round.turn === 1);
-    startTimer();
-  }
-
-  function renderUsed() {
-    $("usedList").innerHTML = round.used.map(function (w) { return "<span>" + w + "</span>"; }).join("");
-  }
-
-  function setMsg(text, kind) { var m = $("msg"); m.textContent = text; m.className = "msg" + (kind ? " " + kind : ""); }
-
-  function startTimer() {
-    stopTimer();
-    round.remaining = round.limit;
-    lastTickSecond = Math.ceil(round.remaining);
-    updateTimerUI();
-    var last = performance.now();
-    ticker = setInterval(function () {
-      var now = performance.now();
-      round.remaining -= (now - last) / 1000;
-      last = now;
-      if (round.remaining <= 0) {
-        round.remaining = 0; updateTimerUI(); stopTimer(); timeUp(); return;
-      }
-      // tick sound in the final 3 seconds
-      var sec = Math.ceil(round.remaining);
-      if (sec <= 3 && sec !== lastTickSecond) { lastTickSecond = sec; Sound.tick(); }
-      updateTimerUI();
-    }, 50);
-  }
-  function stopTimer() { if (ticker) { clearInterval(ticker); ticker = null; } }
-
-  function updateTimerUI() {
-    var t = round.remaining;
-    $("timerNum").textContent = t.toFixed(1);
-    var pct = Math.max(0, (t / round.limit) * 100);
-    $("bar").style.width = pct + "%";
-    var high = t > round.limit * 0.5, mid = t > round.limit * 0.25;
-    $("timerNum").style.color = high ? "var(--good)" : (mid ? "var(--warn)" : "var(--bad)");
-    $("bar").style.background = high ? "linear-gradient(90deg, var(--good), var(--accent))" : (mid ? "var(--warn)" : "var(--bad)");
-  }
-
-  function timeUp() {
-    Sound.timeup();
-    var loser = round.turn, winner = 1 - loser;
-    endRound(winner, match.names[loser] + " ran out of time!");
-  }
-
-  function submitAnswer() {
-    if (!round) return;
-    var guess = $("answer").value.trim().toLowerCase();
-    if (!guess) return;
-    if (!/^[a-z]+$/.test(guess)) { Sound.error(); setMsg("Letters only, please.", "bad"); return; }
-    if (guess === round.current) { Sound.error(); setMsg("You must change one letter.", "bad"); return; }
-    if (guess.length !== round.current.length) { Sound.error(); setMsg("Word must be " + round.current.length + " letters long.", "bad"); return; }
-    if (!oneLetterChanged(round.current, guess)) { Sound.error(); setMsg("Change exactly ONE letter — no more, no less.", "bad"); return; }
-    if (round.used.indexOf(guess) !== -1) { Sound.error(); setMsg("\"" + guess.toUpperCase() + "\" was already used. Try another.", "bad"); return; }
-    if (!DICT.has(guess)) { Sound.error(); setMsg("\"" + guess.toUpperCase() + "\" isn't a word I know. Try another.", "bad"); return; }
-
-    Sound.ok();
-    stopTimer();
-    round.current = guess;
-    round.used.push(guess);
-    round.turn = 1 - round.turn;
-    round.count += 1;
-    round.limit = Math.max(MIN_LIMIT, round.limit - match.diff.step);
-    renderScore();
-    renderTurn();
-  }
-
-  function endRound(winnerIdx, reason) {
-    stopTimer();
-    match.scores[winnerIdx] += 1;
-    if (match.scores[winnerIdx] >= match.target) { endMatch(winnerIdx); return; }
-    Sound.round();
-    $("roundWinner").textContent = match.names[winnerIdx] + " wins the round";
-    $("roundWinner").style.color = "";
-    $("roundReason").textContent = reason + "  (" + round.count + " words played)";
-    $("roNameA").textContent = match.names[0]; $("roNameB").textContent = match.names[1];
-    $("roScoreA").textContent = match.scores[0]; $("roScoreB").textContent = match.scores[1];
-    $("roundChain").innerHTML = round.used.map(function (w) { return "<span>" + w + "</span>"; }).join(" ");
-    show("roundOver");
-  }
-
-  function endMatch(winnerIdx, reason) {
-    stopTimer();
-    Sound.match();
-    $("champName").textContent = match.names[winnerIdx];
-    $("champReason").textContent = "Won " + match.scores[winnerIdx] + " – " + match.scores[1 - winnerIdx];
-    $("moNameA").textContent = match.names[0]; $("moNameB").textContent = match.names[1];
-    $("moScoreA").textContent = match.scores[0]; $("moScoreB").textContent = match.scores[1];
-    show("matchOver");
-  }
-
-  // ---------- sound toggle buttons ----------
-  function refreshSoundBtns() {
-    var icon = Sound.isEnabled() ? "🔊" : "🔇";
-    $("soundBtnSetup").textContent = icon;
-    $("soundBtnGame").textContent = icon;
-  }
-  function toggleSound() { Sound.setEnabled(!Sound.isEnabled()); if (Sound.isEnabled()) Sound.resume(); refreshSoundBtns(); }
-  $("soundBtnSetup").addEventListener("click", toggleSound);
-  $("soundBtnGame").addEventListener("click", toggleSound);
-
-  // ---------- wire events ----------
-  $("startBtn").addEventListener("click", startMatch);
-  $("nextRoundBtn").addEventListener("click", nextRound);
-  $("rematchBtn").addEventListener("click", function () {
-    match.scores = [0, 0]; match.roundNum = 0; match.firstStartWord = null;
-    match.firstPlayer = (match.firstPlayer + 1) % 2; // swap who starts the rematch
-    nextRound();
-  });
-  $("newMatchBtn").addEventListener("click", function () { show("setup"); });
-  $("answer").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitAnswer(); } });
-  $("startWord").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); startMatch(); } });
-
-  refreshSoundBtns();
+  renderHUD();
+  $('soundBtn').textContent=P.sound?'🔊':'🔇'; $('soundBtn2').textContent=P.sound?'🔊':'🔇';
 })();
 </script>
 </body>
