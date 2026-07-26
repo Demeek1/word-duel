@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
 <title>WordSwap — Word Battle</title>
 <meta name="theme-color" content="#6d5efc" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -139,8 +139,8 @@
   .midp b{ font-size:17px; color:var(--ink); }
   .turnpill{ text-align:center; font-weight:800; font-size:15px; margin:2px 0 8px; }
 
-  .ring{ position:relative; width:132px; height:132px; margin:2px auto 8px; }
-  .ring svg{ transform:rotate(-90deg); }
+  .ring{ position:relative; width:132px; height:132px; margin:2px auto 8px; transition:width .2s,height .2s; }
+  .ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
   .ring .track{ fill:none; stroke:rgba(255,255,255,.16); stroke-width:10; }
   .ring .prog{ fill:none; stroke:var(--good); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .1s linear, stroke .3s; }
   .ring .t{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
@@ -215,6 +215,22 @@
   @keyframes sp{ 0%{ opacity:0; transform:translate(-50%,14px) scale(.6);} 25%{ opacity:1; transform:translate(-50%,-4px) scale(1.15);} 100%{ opacity:0; transform:translate(-50%,-70px) scale(1);} }
   .shake{ animation:shk .3s; } @keyframes shk{ 0%,100%{ transform:translateX(0);} 25%{ transform:translateX(-7px);} 75%{ transform:translateX(7px);} }
   .foot{ text-align:center; color:var(--muted); font-size:11px; margin-top:12px; font-weight:600; }
+
+  /* ---- keyboard-open compact mode: keep timer + word + input visible ---- */
+  body.kb .app{ height:var(--vvh,100dvh); min-height:0; overflow:hidden; padding-top:8px; padding-bottom:6px; }
+  body.kb #game .gtop{ display:none; }
+  body.kb #game .powerbar{ display:none; }
+  body.kb #game .chips{ display:none; }
+  body.kb #game .combo{ display:none; }
+  body.kb #game .scoreboard{ margin-bottom:4px; }
+  body.kb #game .turnpill{ margin:0 0 2px; font-size:14px; }
+  body.kb #game .ring{ width:74px; height:74px; margin:0 auto 2px; }
+  body.kb #game .ring .t b{ font-size:24px; } body.kb #game .ring .t span{ display:none; }
+  body.kb #game .wordwrap{ padding:10px 12px; margin-bottom:4px; }
+  body.kb #game .wtiles{ margin-top:6px; } body.kb #game .wtiles b{ height:48px; width:42px; font-size:26px; }
+  body.kb #game .answerRow{ margin-top:6px; }
+  body.kb #game .msg{ margin-top:5px; }
+
   .rows{ display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.1); }
   .rows:last-child{ border-bottom:none; }
   .switch{ width:52px; height:30px; border-radius:20px; background:rgba(255,255,255,.2); position:relative; cursor:pointer; transition:background .2s; }
@@ -314,13 +330,13 @@
     <div class="scoreboard glass" id="scoreboard" style="padding:0; background:transparent; border:none; box-shadow:none;"></div>
     <div class="turnpill" id="turnPill"></div>
     <div class="ring">
-      <svg width="132" height="132"><circle class="track" cx="66" cy="66" r="58"></circle><circle class="prog" id="ringProg" cx="66" cy="66" r="58"></circle></svg>
+      <svg viewBox="0 0 132 132" width="132" height="132"><circle class="track" cx="66" cy="66" r="58"></circle><circle class="prog" id="ringProg" cx="66" cy="66" r="58"></circle></svg>
       <div class="t"><b id="tnum">10</b><span>SECONDS</span></div>
     </div>
     <div class="powerbar" id="powerbar"></div>
     <div class="glass wordwrap"><div class="lbl">Current word</div><div class="wtiles" id="wtiles"></div></div>
     <div class="combo" id="comboLine"></div>
-    <div class="answerRow"><input type="text" id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="new word" /><button id="goBtn">➤</button></div>
+    <form class="answerRow" id="ansForm" autocomplete="off"><input type="text" id="answer" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" placeholder="new word" /><button id="goBtn" type="submit">➤</button></form>
     <div class="msg" id="msg"></div>
     <div class="chips" id="chips"></div>
   </section>
@@ -697,9 +713,15 @@
     else { G.score+=pts; scorePop(pts); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true); startTimer(); }
     if(G.combo===5){ toast('🔥','5 combo! On fire!'); confetti(); } if(spent<1.5)unlock('speed'); if(G.chain>=12)unlock('chain12'); if(G.chain>=25)unlock('chain25');
     save();
+    try{ if(document.getElementById('game').classList.contains('active')) $('answer').focus(); }catch(e){}
   }
-  $('goBtn').addEventListener('click',submit);
-  $('answer').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
+  $('ansForm').addEventListener('submit',function(e){ e.preventDefault(); submit(); });
+  // keyboard-aware layout: keep timer + word + names visible while typing
+  var vv=window.visualViewport;
+  function vvUpdate(){ if(vv) document.documentElement.style.setProperty('--vvh', Math.round(vv.height)+'px'); }
+  if(vv){ vv.addEventListener('resize',vvUpdate); vv.addEventListener('scroll',vvUpdate); vvUpdate(); }
+  $('answer').addEventListener('focus',function(){ document.body.classList.add('kb'); vvUpdate(); setTimeout(function(){ window.scrollTo(0,0); vvUpdate(); },120); });
+  $('answer').addEventListener('blur',function(){ document.body.classList.remove('kb'); setTimeout(function(){ window.scrollTo(0,0); },60); });
 
   function partyOut(){ G.alive[G.turn]=false; var liveIdx=[]; G.alive.forEach(function(a,i){ if(a)liveIdx.push(i); }); toast('💥',G.names[G.turn]+' is out!');
     if(liveIdx.length<=1){ var w=liveIdx[0]; P.stats.games++; addXP(15); addCoins(6); bumpStreak(); save();
