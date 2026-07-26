@@ -907,7 +907,11 @@
     $('obName').value=P.name||''; $('obStart').textContent=edit?'Save':'Let\'s play ▶'; go('onboard'); }
   $('obStart').addEventListener('click',function(){ var n=$('obName').value.trim(); if(!n){ toast('✏️','Enter a name'); return; } P.name=n; save(); renderHUD(); home(); });
 
-  function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'✅ Daily done — streak safe! Come back tomorrow.':'📅 New Daily Challenge available!'; }
+  function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'✅ Daily done — streak safe! Come back tomorrow.':'📅 New Daily Challenge available!';
+    var oc=document.querySelector('.mode[data-mode="online"]');
+    if(oc){ if(serverUrl()){ oc.classList.remove('locked'); var tg=oc.querySelector('.tag'); if(tg){ tg.textContent='LIVE'; tg.className='tag hot'; } var pp=oc.querySelector('p'); if(pp) pp.textContent='Create a room & invite a friend — real-time!'; var go=oc.querySelector('.go'); if(go) go.textContent='›'; }
+      else { oc.classList.add('locked'); var tg2=oc.querySelector('.tag'); if(tg2){ tg2.textContent='SOON'; tg2.className='tag soon'; } var go2=oc.querySelector('.go'); if(go2) go2.textContent='🔒'; } }
+  }
 
   /* ---- daily reward on open ---- */
   function dailyRewardCheck(){ if(P.lastReward===today())return; var first=!P.lastReward; P.lastReward=today();
