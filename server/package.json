@@ -1,0 +1,14 @@
+{
+  "name": "wordswap-server",
+  "version": "1.0.0",
+  "description": "WordSwap real-time game server (Socket.IO) for Online Friend Match.",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
