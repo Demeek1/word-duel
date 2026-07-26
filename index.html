@@ -220,6 +220,20 @@
   .shake{ animation:shk .3s; } @keyframes shk{ 0%,100%{ transform:translateX(0);} 25%{ transform:translateX(-7px);} 75%{ transform:translateX(7px);} }
   .foot{ text-align:center; color:var(--muted); font-size:11px; margin-top:12px; font-weight:600; }
 
+  /* ---- online: reactions, lobby, qr, opponent flash ---- */
+  .reactbar{ display:flex; gap:8px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+  .reactbar button{ font-size:22px; background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; width:46px; height:46px; cursor:pointer; }
+  .reactbar button:active{ transform:scale(.9); }
+  #reactfloat{ position:fixed; inset:0; z-index:66; pointer-events:none; }
+  .rfloat{ position:fixed; font-size:46px; animation:rf 1.7s ease forwards; }
+  @keyframes rf{ 0%{ opacity:0; transform:translateY(0) scale(.5);} 18%{ opacity:1; transform:translateY(-18px) scale(1.25);} 100%{ opacity:0; transform:translateY(-170px) scale(1);} }
+  .lobby-p{ display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:rgba(255,255,255,.08); border:1px solid var(--glass-brd); margin:8px 0; }
+  .lobby-p .av{ font-size:26px; } .lobby-p .nm{ font-weight:800; flex:1; } .lobby-p .st{ font-size:12px; color:var(--good); font-weight:800; }
+  .lobby-p.empty{ opacity:.55; } .lobby-p.empty .st{ color:var(--muted); }
+  #qrBox img, #qrBox canvas, #qrBox table{ border-radius:12px; background:#fff; padding:8px; max-width:170px; }
+  .oppflash{ animation:oflash .7s ease; }
+  @keyframes oflash{ 0%{ box-shadow:0 0 0 0 rgba(34,224,161,0);} 30%{ box-shadow:0 0 36px 10px rgba(34,224,161,.7);} 100%{ box-shadow:0 0 0 0 rgba(34,224,161,0);} }
+
   /* ---- keyboard-open compact mode: keep timer + word + input visible ---- */
   body.kb .app{ height:var(--vvh,100dvh); min-height:0; overflow:hidden; padding-top:8px; padding-bottom:6px; }
   body.kb #game .gtop{ display:none; }
@@ -247,6 +261,7 @@
 <canvas id="particles"></canvas>
 <canvas id="confetti"></canvas>
 <div class="toastwrap" id="toasts"></div>
+<div id="reactfloat"></div>
 
 <div class="backdrop" id="backdrop"><div class="glass modal" id="modal"></div></div>
 
@@ -351,6 +366,7 @@
     <form class="answerRow" id="ansForm" autocomplete="off"><input type="text" id="answer" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" placeholder="new word" /><button id="goBtn" type="submit">➤</button></form>
     <div class="msg" id="msg"></div>
     <div class="chips" id="chips"></div>
+    <div class="reactbar" id="reactbar" style="display:none;"></div>
   </section>
 
   <!-- RESULT -->
@@ -399,6 +415,46 @@
     </div>
   </section>
 
+  <!-- ONLINE MENU -->
+  <section id="online" class="screen">
+    <button class="backbtn" data-home>‹ Back</button>
+    <div class="glass panel">
+      <h2>🌐 Online Friend Match</h2>
+      <div class="sub">Create a room and share the code — or join a friend's room.</div>
+      <label>Word length</label>
+      <div class="seg" id="olenSeg"><button data-olen="3">3</button><button data-olen="4" class="active">4</button><button data-olen="5">5</button></div>
+      <label>Clock speed</label>
+      <div class="seg" id="odiffSeg"><button data-odiff="chill">Chill</button><button data-odiff="normal" class="active">Normal</button><button data-odiff="blitz">Blitz</button><button data-odiff="insane">Insane</button></div>
+      <button class="btn" id="createRoomBtn">➕ Create a Room</button>
+      <div style="text-align:center; margin:14px 0 4px; color:var(--muted); font-weight:700;">— or —</div>
+      <label>Join with a code</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="joinCode" placeholder="ABC123" maxlength="6" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase; letter-spacing:3px; font-weight:900; text-align:center;" />
+        <button class="btn alt" id="joinRoomBtn" style="margin:0; width:auto; padding:0 20px;">Join</button>
+      </div>
+      <div class="msg" id="onlineMsg" style="color:var(--bad);"></div>
+      <div class="sub" style="margin-top:10px;">First online match may take ~30s while the free server wakes up. ⏳</div>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="lobby" class="screen">
+    <button class="backbtn" id="leaveLobbyBtn">‹ Leave room</button>
+    <div class="glass panel">
+      <h2 id="lobbyTitle">Room ready 🎮</h2>
+      <div class="sub">Share this with your friend so they can join.</div>
+      <div id="roomCode" style="font-size:38px; font-weight:900; letter-spacing:8px; text-align:center; margin:8px 0; text-shadow:0 3px 12px rgba(0,0,0,.3);">------</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn ghost" id="copyCodeBtn" style="margin:0;">📋 Copy code</button>
+        <button class="btn ghost" id="copyLinkBtn" style="margin:0;">🔗 Copy link</button>
+      </div>
+      <div id="qrBox" style="display:flex; justify-content:center; margin:16px 0;"></div>
+      <div id="lobbyPlayers"></div>
+      <button class="btn" id="startMatchBtn">Start Match ▶</button>
+      <div class="sub" id="lobbyHint" style="text-align:center; margin-top:8px;"></div>
+    </div>
+  </section>
+
   <!-- LEADERBOARD -->
   <section id="board" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
@@ -435,6 +491,8 @@
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="words.js"></script>
 <script>
 (function(){
@@ -594,7 +652,7 @@
   var NAV_SCREENS={home:1,board:1,shop:1,profile:1,settings:1};
   function go(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.id===id);});
     if(stack[stack.length-1]!==id) stack.push(id); scrollTo(0,0); $('nav').style.display=NAV_SCREENS[id]?'flex':'none'; syncNav(id); }
-  function home(){ stopTimer(); stack=['home']; go('home'); refreshHome(); }
+  function home(){ stopTimer(); if(typeof onlineCleanup==='function') onlineCleanup(); stack=['home']; go('home'); refreshHome(); }
   document.querySelectorAll('[data-home]').forEach(function(b){ b.addEventListener('click',home); });
 
   var NAV=[['home','🏠','Home'],['board','🌍','Ranks'],['shop','🎨','Shop'],['profile','👤','Profile'],['settings','⚙️','More']];
@@ -639,13 +697,13 @@
     while(moves(w).length<3 && g++<60){ h=(h*31+7)>>>0; w=pool[h%pool.length]; } return w; }
 
   /* ---- setup ---- */
-  var sel={ len:4, diff:'normal', target:3, mode:'duel', pc:2, ai:'medium' };
+  var sel={ len:4, diff:'normal', target:3, mode:'duel', pc:2, ai:'medium', olen:4, odiff:'normal' };
   function wireSeg(id,attr,cb){ var c=$(id); c.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ c.querySelectorAll('button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); cb(b.dataset[attr]); }); }); }
-  wireSeg('lenSeg','len',function(v){sel.len=+v;}); wireSeg('diffSeg','diff',function(v){sel.diff=v;}); wireSeg('targetSeg','target',function(v){sel.target=+v;}); wireSeg('partyCount','pc',function(v){sel.pc=+v;}); wireSeg('aiSeg','ai',function(v){sel.ai=v;});
+  wireSeg('lenSeg','len',function(v){sel.len=+v;}); wireSeg('diffSeg','diff',function(v){sel.diff=v;}); wireSeg('targetSeg','target',function(v){sel.target=+v;}); wireSeg('partyCount','pc',function(v){sel.pc=+v;}); wireSeg('aiSeg','ai',function(v){sel.ai=v;}); wireSeg('olenSeg','olen',function(v){sel.olen=+v;}); wireSeg('odiffSeg','odiff',function(v){sel.odiff=v;});
   $('practiceRow').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ Sound.resume(); sel.mode=b.dataset.pmode; openSetup(); }); });
 
   document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); var mode=m.dataset.mode;
-    if(mode==='online'){ modal('<div class="em">🌐</div><h3>Online Friend Match</h3><p>Create a room, share a 6-character code or invite link, and battle a friend in real time. This is being built right now — it needs the live game server. Coming in the very next update! For now, try <b>Solo vs AI</b> or <b>Pass &amp; Play</b>.</p><button class="btn" data-close>Got it</button>'); return; }
+    if(mode==='online'){ if(!serverUrl()){ modal('<div class="em">🌐</div><h3>Online is almost ready</h3><p>The game server isn\'t connected yet. Once it\'s deployed to Render and its URL is in <b>config.js</b>, this unlocks real-time friend matches. For now, try <b>Solo vs AI</b> or <b>Pass &amp; Play</b>.</p><button class="btn" data-close>Got it</button>'); return; } Sound.resume(); openOnline(); return; }
     sel.mode=mode; openSetup(); }); });
   function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none'; $('aiWrap').style.display='none';
     if(sel.mode==='ai'){ t.textContent='🤖 Solo vs AI'; s.textContent='Play the computer. Pick your challenge.'; $('aiWrap').style.display=''; }
@@ -738,7 +796,7 @@
     save();
     try{ if(document.getElementById('game').classList.contains('active')) $('answer').focus(); }catch(e){}
   }
-  $('ansForm').addEventListener('submit',function(e){ e.preventDefault(); submit(); });
+  $('ansForm').addEventListener('submit',function(e){ e.preventDefault(); if(ONLINE){ onlineSubmit(); } else { submit(); } });
   // keyboard-aware layout: keep timer + word + names visible while typing
   var vv=window.visualViewport;
   function vvUpdate(){ if(vv) document.documentElement.style.setProperty('--vvh', Math.round(vv.height)+'px'); }
@@ -794,7 +852,9 @@
     $('resStats').innerHTML=(r.stats||[]).map(function(s){return '<div class="stat"><div class="v">'+s[1]+'</div><div class="k">'+s[0]+'</div></div>';}).join('');
     $('resReward').innerHTML=(r.reward||[]).map(function(x){return '<div class="r">'+x[0]+' '+x[1]+'</div>';}).join('');
     $('againBtn').textContent=r.mode==='duel-continue'?'Next round ▶':'Play again ▶'; go('result'); }
-  $('againBtn').addEventListener('click',function(){ if(!resCtx)return; if(resCtx.mode==='duel-continue'){ nextRound(); } else if(resCtx.mode==='duel'){ G.scores=[0,0]; G.roundNum=0; G.firstPlayer=(G.firstPlayer+1)%2; nextRound(); } else if(resCtx.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Come back tomorrow for a new word!'); home(); } else { startGame(); } });
+  $('againBtn').addEventListener('click',function(){ if(!resCtx)return;
+    if(resCtx.mode==='online'){ if(socket){ socket.emit('rematch'); toast('🔁','Rematch requested…'); } return; }
+    if(resCtx.mode==='duel-continue'){ nextRound(); } else if(resCtx.mode==='duel'){ G.scores=[0,0]; G.roundNum=0; G.firstPlayer=(G.firstPlayer+1)%2; nextRound(); } else if(resCtx.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Come back tomorrow for a new word!'); home(); } else { startGame(); } });
   $('shareBtn').addEventListener('click',function(){ var txt='🔤 WordSwap — '+$('resTitle').textContent+' '+((resCtx&&resCtx.stats)||[]).map(function(s){return s[0]+': '+s[1];}).join(', ')+' — play at '+location.href;
     if(navigator.share){ navigator.share({title:'WordSwap',text:txt,url:location.href}).catch(function(){}); } else { try{ navigator.clipboard.writeText(txt); toast('📋','Copied — paste anywhere!'); }catch(e){ toast('📤','Share not supported'); } } });
 
@@ -856,8 +916,102 @@
     if(!first){ setTimeout(function(){ modal('<div class="em">🎁</div><h3>Welcome back!</h3><p>Daily reward for showing up:</p><div class="reward" style="justify-content:center; margin:14px 0;"><div class="r">🪙 +'+coins+'</div></div><button class="btn" data-close>Collect</button>'); Sound.coin(); }, 600); } }
 
   /* ---- init ---- */
+  /* ===================== ONLINE FRIEND MATCH (client) ===================== */
+  var socket=null, O=null, ONLINE=false, oTimer=null, myUid=null, typingT=null;
+  function serverUrl(){ return (window.WORDSWAP_CONFIG&&window.WORDSWAP_CONFIG.GAME_SERVER_URL)||''; }
+  function myUidGet(){ if(!myUid){ myUid=(USER&&USER.id)||localStorage.getItem('ws_uid'); if(!myUid){ myUid='g_'+Math.random().toString(36).slice(2,12); try{localStorage.setItem('ws_uid',myUid);}catch(e){} } } return myUid; }
+  function onlineErrText(e){ var m=e&&e.message; if(m==='no_server')return 'Online server not set up yet.'; if(m==='no_io')return 'Could not load the game client.'; return 'Could not reach the server (it may be waking up — wait ~30s and retry).'; }
+  function joinErrText(res){ var e=res&&res.error; return e==='not_found'?'Room not found — check the code.':e==='full'?'That room is full.':e==='in_progress'?'That match already started.':'Could not join. Try again.'; }
+  function inviteLink(code){ return location.origin+location.pathname+'?room='+code; }
+  function copyText(t){ if(!t)return; try{ navigator.clipboard.writeText(t); }catch(e){} }
+
+  function ensureSocket(cb){ if(!serverUrl()){ cb(new Error('no_server')); return; } if(!window.io){ cb(new Error('no_io')); return; }
+    if(socket && socket.connected){ cb(null); return; }
+    if(!socket){ socket=window.io(serverUrl(),{transports:['websocket','polling'], reconnection:true}); wireSocket(); }
+    if(socket.connected){ cb(null); return; }
+    var done=false; socket.once('connect',function(){ if(done)return; done=true; cb(null); }); socket.once('connect_error',function(){ if(done)return; done=true; cb(new Error('connect_failed')); });
+  }
+  function wireSocket(){
+    socket.on('connect', function(){ if(O&&O.code){ socket.emit('join',{code:O.code,userId:myUidGet(),name:P.name||'You',avatar:P.avatar}); } });
+    socket.on('lobby', function(r){ O=O||{}; O.code=r.code; O.hostUserId=r.hostUserId; O.players=r.players; O.len=r.len; if($('lobby').classList.contains('active')) renderLobby(r); });
+    socket.on('state', function(r){ if(!O)O={}; var prev=O.word; O.code=r.code; O.word=r.word; O.used=r.used; O.turnUserId=r.turnUserId; O.deadline=r.deadline; O.limit=r.limit; O.players=r.players; O.hostUserId=r.hostUserId; O.len=r.len;
+      if(r.state==='playing'){ if(!ONLINE){ ONLINE=true; stopTimer(); $('modeLabel').textContent='Online'; $('reactbar').style.display='flex'; go('game'); } renderOnlineGame(prev); startODisplay(); } });
+    socket.on('moved', function(r){ if(r.byUserId!==myUidGet()){ Sound.ok(); haptic(30); var wc=$('wtiles'); wc.classList.remove('oppflash'); void wc.offsetWidth; wc.classList.add('oppflash'); } });
+    socket.on('opp_status', function(r){ if(r.userId===myUidGet())return; O._oppStatus = r.disconnected?'⚠️ disconnected':(r.typing?'is typing…':''); if(ONLINE) renderOnlineTurnpill(); });
+    socket.on('reaction', function(r){ floatReaction(r.emoji); });
+    socket.on('rematch', function(){ ONLINE=false; stopODisplay(); openLobby(O&&O.code); });
+    socket.on('gameover', function(r){ onlineGameOver(r); });
+  }
+
+  function openOnline(){ $('onlineMsg').textContent=''; $('joinCode').value=''; go('online'); }
+  function createRoom(){ $('onlineMsg').textContent=''; $('createRoomBtn').textContent='Connecting…'; ensureSocket(function(err){ $('createRoomBtn').textContent='➕ Create a Room'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
+    socket.emit('create',{userId:myUidGet(),name:P.name||'You',avatar:P.avatar,len:sel.olen,diff:sel.odiff}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:true,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent='Could not create room. Try again.'; }); }); }
+  function joinRoomCode(code){ code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); if(code.length<4){ $('onlineMsg').textContent='Enter the room code.'; return; } $('onlineMsg').textContent=''; $('joinRoomBtn').textContent='…'; ensureSocket(function(err){ $('joinRoomBtn').textContent='Join'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
+    socket.emit('join',{code:code,userId:myUidGet(),name:P.name||'You',avatar:P.avatar}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:false,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent=joinErrText(res); }); }); }
+  function openLobby(code){ O=O||{}; O.code=code; go('lobby'); $('roomCode').textContent=code; renderQR(code); renderLobby({code:code,players:(O.players||[]),hostUserId:O.hostUserId}); }
+  function renderQR(code){ var box=$('qrBox'); box.innerHTML=''; try{ if(window.qrcode){ var qr=window.qrcode(0,'M'); qr.addData(inviteLink(code)); qr.make(); box.innerHTML=qr.createImgTag(4,8); } }catch(e){ box.innerHTML=''; } }
+  function renderLobby(r){ var players=r.players||[]; O.hostUserId=r.hostUserId||O.hostUserId; O.players=players; var host=O.hostUserId, me=myUidGet(), amHost=(host===me);
+    var slots=[]; for(var i=0;i<2;i++){ var p=players[i]; slots.push(p ? '<div class="lobby-p"><span class="av">'+(p.avatar||'😀')+'</span><span class="nm">'+esc(p.name)+(p.userId===me?' (you)':'')+'</span><span class="st">'+(p.userId===host?'HOST':'ready')+'</span></div>' : '<div class="lobby-p empty"><span class="av">⏳</span><span class="nm">Waiting for player…</span><span class="st">empty</span></div>'); }
+    $('lobbyPlayers').innerHTML=slots.join(''); var full=(players.length>=2);
+    $('startMatchBtn').style.display=amHost?'flex':'none'; $('startMatchBtn').disabled=!full; $('startMatchBtn').style.opacity=full?1:.5;
+    $('lobbyHint').textContent = amHost ? (full?'Both in — start when ready!':'Share the code — Start unlocks when your friend joins.') : (full?'Waiting for the host to start…':'Waiting for another player…'); }
+  function startMatch(){ if(socket) socket.emit('start', function(res){ if(res&&!res.ok){ toast('⚠️', res.error==='need_players'?'Need a second player':'Could not start'); } }); }
+
+  function renderOnlineGame(prev){ var me=myUidGet(); var players=O.players||[]; var myP=players.filter(function(p){return p.userId===me;})[0]||{name:(P.name||'You'),avatar:P.avatar}; var opp=players.filter(function(p){return p.userId!==me;})[0]||{name:'Opponent',avatar:'🙂'}; var myTurn=(O.turnUserId===me);
+    var sb=$('scoreboard'); sb.style.display='flex';
+    sb.innerHTML='<div class="scell '+(myTurn?'on':'')+'"><div class="nm">'+esc(myP.name)+' (you)</div><div class="sc" style="font-size:16px">'+(myTurn?'🟢':'—')+'</div></div>'
+      +'<div class="midp"><span>CHAIN</span><b>'+Math.max(0,(O.used||[]).length-1)+'</b><span>online</span></div>'
+      +'<div class="scell '+(!myTurn?'on':'')+'"><div class="nm">'+esc(opp.name)+'</div><div class="sc" style="font-size:16px">'+(!myTurn?'🟢':'—')+'</div></div>';
+    renderOnlineTurnpill();
+    G={mode:'online', current:O.word, used:O.used};
+    renderTiles(true, (prev&&prev!==O.word)?prev:null);
+    $('chips').innerHTML=(O.used||[]).slice(-14).map(function(w){return '<span>'+w+'</span>';}).join('');
+    var dis=!myTurn; $('answer').disabled=dis; $('goBtn').disabled=dis; $('answer').value=''; $('msg').textContent=''; if(!dis){ setTimeout(function(){ try{$('answer').focus();}catch(e){} },40); } }
+  function renderOnlineTurnpill(){ var me=myUidGet(); var myTurn=(O.turnUserId===me); var opp=(O.players||[]).filter(function(p){return p.userId!==me;})[0]||{name:'Opponent'}; $('turnPill').innerHTML = myTurn ? '✍️ Your turn' : ('⏳ '+esc(opp.name)+' '+(O._oppStatus||'is thinking…')); }
+
+  function startODisplay(){ stopODisplay(); oTimer=setInterval(function(){ if(!O||!O.deadline)return; var lim=O.limit||10; var rem=Math.max(0,(O.deadline-Date.now())/1000);
+    $('tnum').textContent=Math.ceil(rem); var frac=Math.max(0,rem/lim); $('ringProg').style.strokeDashoffset=CIRC*(1-frac);
+    var hi=rem>lim*.5,mid=rem>lim*.25; $('ringProg').style.stroke=hi?'var(--good)':(mid?'var(--warn)':'var(--bad)'); $('tnum').style.color=hi?'var(--ink)':(mid?'var(--warn)':'var(--bad)');
+    var s=Math.ceil(rem); if(s<=3&&s!==O._lt){ O._lt=s; Sound.tick(); if(O.turnUserId===myUidGet())haptic(10); } },100); }
+  function stopODisplay(){ if(oTimer){ clearInterval(oTimer); oTimer=null; } }
+
+  function onlineSubmit(){ if(!O||O.turnUserId!==myUidGet())return; var guess=$('answer').value.trim().toLowerCase(); if(!guess)return; var fail=null;
+    if(!/^[a-z]+$/.test(guess))fail='Letters only';
+    else if(guess.length!==O.word.length)fail='Must be '+O.word.length+' letters';
+    else if(guess===O.word)fail='Change one letter';
+    else if(!oneOff(O.word,guess))fail='Change exactly ONE letter';
+    else if((O.used||[]).indexOf(guess)!==-1)fail='"'+guess.toUpperCase()+'" already used';
+    else if(!DICT.has(guess))fail='"'+guess.toUpperCase()+'" isn\'t a known word';
+    if(fail){ Sound.err(); haptic(60); $('msg').textContent=fail; var wc=$('wtiles'); wc.classList.remove('shake'); void wc.offsetWidth; wc.classList.add('shake'); return; }
+    socket.emit('move',{word:guess}, function(res){ if(res&&!res.ok){ Sound.err(); haptic(60); $('msg').textContent=res.reason||'Rejected'; } });
+    Sound.ok(); haptic(12); $('answer').value=''; emitTyping(false); }
+  function emitTyping(on){ if(socket&&O){ socket.emit('typing',{typing:!!on}); } }
+
+  function onlineGameOver(r){ stopODisplay(); ONLINE=false; $('reactbar').style.display='none'; var me=myUidGet(); var won=(r.winnerUserId===me);
+    P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,r.chain||0); if(won){ P.stats.wins++; addXP(20); addCoins(8); bumpStreak(); unlock('firstwin'); } else { addXP(6); } save();
+    var reason=r.reason==='left'?'Your opponent left.':(r.reason==='timeout'?'Time ran out.':''); resCtx=null;
+    showResult({ em:won?'🏆':'😔', title:won?'You win!':'You lost', body:reason+' Chain of '+(r.chain||0)+' words.', stats:[['Result',won?'WIN':'LOSS'],['Words',r.chain||0]], reward: won?[['🪙','+8'],['⭐','+20']]:[['⭐','+6']], mode:'online' });
+    if(won){ confetti(); Sound.big(); haptic([30,50,30]); } else { Sound.err(); haptic(200); } }
+
+  function floatReaction(em){ var e=document.createElement('div'); e.className='rfloat'; e.textContent=em; e.style.left=(18+Math.random()*60)+'%'; e.style.bottom='140px'; $('reactfloat').appendChild(e); setTimeout(function(){e.remove();},1700); }
+  function onlineCleanup(){ if(socket&&O){ try{ socket.emit('leaveRoom'); }catch(e){} } stopODisplay(); ONLINE=false; $('reactbar').style.display='none'; O=null; }
+
+  // wiring
+  (function(){ var R=['👍','😂','🔥','😱','👏','❤️']; $('reactbar').innerHTML=R.map(function(e){return '<button data-r="'+e+'">'+e+'</button>';}).join('');
+    $('reactbar').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ if(socket&&O){ socket.emit('react',{emoji:b.dataset.r}); floatReaction(b.dataset.r); } }); }); })();
+  $('createRoomBtn').addEventListener('click',createRoom);
+  $('joinRoomBtn').addEventListener('click',function(){ joinRoomCode($('joinCode').value); });
+  $('joinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); joinRoomCode($('joinCode').value); } });
+  $('copyCodeBtn').addEventListener('click',function(){ copyText(O&&O.code); toast('📋','Room code copied'); });
+  $('copyLinkBtn').addEventListener('click',function(){ copyText(inviteLink(O&&O.code)); toast('🔗','Invite link copied'); });
+  $('startMatchBtn').addEventListener('click',startMatch);
+  $('leaveLobbyBtn').addEventListener('click',function(){ onlineCleanup(); home(); });
+  $('answer').addEventListener('input',function(){ if(ONLINE&&O&&O.turnUserId===myUidGet()){ emitTyping(true); clearTimeout(typingT); typingT=setTimeout(function(){ emitTyping(false); },1200); } });
+
   applyTheme(P.theme); renderHUD(); updateAccountUI(); $('sndG').textContent=P.sound?'🔊':'🔇';
   if(!P.name){ openOnboard(false); } else { go('home'); refreshHome(); dailyRewardCheck(); }
+  // invite-link auto-join: ?room=CODE
+  (function(){ var m=(location.search||'').match(/[?&]room=([A-Za-z0-9]{4,6})/); if(m && serverUrl() && P.name){ setTimeout(function(){ openOnline(); $('joinCode').value=m[1].toUpperCase(); joinRoomCode(m[1]); },400); } })();
   if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 })();
 </script>
