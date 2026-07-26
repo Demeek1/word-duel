@@ -154,6 +154,10 @@
     color:#2a1c5e; background:linear-gradient(180deg,#fff,#eee7ff); border-radius:14px; text-transform:uppercase;
     box-shadow:0 8px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.6); }
   .wtiles b.flip{ animation:flip .45s ease; } @keyframes flip{ 0%{ transform:rotateX(90deg); opacity:0;} 100%{ transform:rotateX(0); opacity:1;} }
+  .wtiles b.glow{ animation:glowpop .7s ease; color:#0b7d5a; }
+  @keyframes glowpop{ 0%{ box-shadow:0 8px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(34,224,161,.9); transform:scale(1);} 40%{ box-shadow:0 8px 0 rgba(0,0,0,.18), 0 0 26px 6px rgba(34,224,161,.85); transform:scale(1.12);} 100%{ box-shadow:0 8px 0 rgba(0,0,0,.18), 0 0 0 0 rgba(34,224,161,0); transform:scale(1);} }
+  .answerRow input:disabled{ opacity:.55; }
+  .answerRow button:disabled{ opacity:.4; }
   .combo{ text-align:center; font-weight:900; height:20px; margin-top:6px; color:var(--gold); text-shadow:0 2px 8px rgba(0,0,0,.3); }
 
   .powerbar{ display:flex; gap:8px; justify-content:center; margin:8px 0; }
@@ -281,11 +285,13 @@
     <div class="brand"><div class="logo"><b>S</b><b>W</b><b>A</b><b>P</b></div><h1>WordSwap</h1><p>Change one letter. Keep the word alive.</p></div>
 
     <div class="modes">
-      <button class="mode glass" data-mode="duel"><div class="ic">⚔️</div><div><h3>Quick Duel <span class="tag hot">2P</span></h3><p>Pass &amp; play — outlast your rival on the clock.</p></div><div class="go">›</div></button>
-      <button class="mode glass" data-mode="solo"><div class="ic">⚡</div><div><h3>Endless Solo</h3><p>Chain as far as you can. Beat your record.</p></div><div class="go">›</div></button>
-      <button class="mode glass" data-mode="daily"><div class="ic">📅</div><div><h3>Daily Challenge</h3><p>Same word worldwide. One run a day. Keep your streak.</p></div><div class="go">›</div></button>
-      <button class="mode glass" data-mode="party"><div class="ic">🎉</div><div><h3>Party <span class="tag hot">2–20</span></h3><p>Pass the phone around. Last player standing wins.</p></div><div class="go">›</div></button>
-      <button class="mode glass locked" data-mode="ranked"><div class="ic">🏆</div><div><h3>Ranked <span class="tag soon">SOON</span></h3><p>Global leagues Bronze → Legend. Online update.</p></div><div class="go">🔒</div></button>
+      <button class="mode glass" data-mode="ai"><div class="ic">🤖</div><div><h3>Solo vs AI</h3><p>Practice anytime against 4 AI levels.</p></div><div class="go">›</div></button>
+      <button class="mode glass" data-mode="duel"><div class="ic">🤝</div><div><h3>Pass &amp; Play <span class="tag hot">2P</span></h3><p>Two players share one phone. Great for family.</p></div><div class="go">›</div></button>
+      <button class="mode glass locked" data-mode="online"><div class="ic">🌐</div><div><h3>Online Friend Match <span class="tag soon">SOON</span></h3><p>Room code &amp; invite link. Real-time — building next.</p></div><div class="go">🔒</div></button>
+    </div>
+    <div class="seg" id="practiceRow" style="margin-top:12px;">
+      <button data-pmode="solo">⚡ Endless Solo</button>
+      <button data-pmode="daily">📅 Daily</button>
     </div>
     <div class="foot" id="dailyTip"></div>
   </section>
@@ -304,6 +310,12 @@
         <label>How many players?</label>
         <div class="seg" id="partyCount">
           <button data-pc="2" class="active">2</button><button data-pc="3">3</button><button data-pc="4">4</button><button data-pc="6">6</button><button data-pc="8">8</button>
+        </div>
+      </div>
+      <div id="aiWrap" style="display:none;">
+        <label>AI opponent</label>
+        <div class="seg" id="aiSeg">
+          <button data-ai="easy">😌 Easy</button><button data-ai="medium" class="active">🙂 Medium</button><button data-ai="hard">😤 Hard</button><button data-ai="expert">🤖 Expert</button>
         </div>
       </div>
       <label>Word length</label>
@@ -627,15 +639,17 @@
     while(moves(w).length<3 && g++<60){ h=(h*31+7)>>>0; w=pool[h%pool.length]; } return w; }
 
   /* ---- setup ---- */
-  var sel={ len:4, diff:'normal', target:3, mode:'duel', pc:2 };
+  var sel={ len:4, diff:'normal', target:3, mode:'duel', pc:2, ai:'medium' };
   function wireSeg(id,attr,cb){ var c=$(id); c.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ c.querySelectorAll('button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); cb(b.dataset[attr]); }); }); }
-  wireSeg('lenSeg','len',function(v){sel.len=+v;}); wireSeg('diffSeg','diff',function(v){sel.diff=v;}); wireSeg('targetSeg','target',function(v){sel.target=+v;}); wireSeg('partyCount','pc',function(v){sel.pc=+v;});
+  wireSeg('lenSeg','len',function(v){sel.len=+v;}); wireSeg('diffSeg','diff',function(v){sel.diff=v;}); wireSeg('targetSeg','target',function(v){sel.target=+v;}); wireSeg('partyCount','pc',function(v){sel.pc=+v;}); wireSeg('aiSeg','ai',function(v){sel.ai=v;});
+  $('practiceRow').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ Sound.resume(); sel.mode=b.dataset.pmode; openSetup(); }); });
 
   document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); var mode=m.dataset.mode;
-    if(mode==='ranked'){ modal('<div class="em">🏆</div><h3>Ranked is coming</h3><p>Global leagues, ELO rating and worldwide matchmaking arrive in the online update. For now, sharpen up in Solo &amp; Duel!</p><button class="btn" data-close>Got it</button>'); return; }
+    if(mode==='online'){ modal('<div class="em">🌐</div><h3>Online Friend Match</h3><p>Create a room, share a 6-character code or invite link, and battle a friend in real time. This is being built right now — it needs the live game server. Coming in the very next update! For now, try <b>Solo vs AI</b> or <b>Pass &amp; Play</b>.</p><button class="btn" data-close>Got it</button>'); return; }
     sel.mode=mode; openSetup(); }); });
-  function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none';
-    if(sel.mode==='duel'){ t.textContent='⚔️ Quick Duel'; s.textContent='Two players, one screen. Last one standing wins.'; $('duelFields').style.display=''; $('matchWrap').style.display=''; $('nameA').value=P.name||'You'; }
+  function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none'; $('aiWrap').style.display='none';
+    if(sel.mode==='ai'){ t.textContent='🤖 Solo vs AI'; s.textContent='Play the computer. Pick your challenge.'; $('aiWrap').style.display=''; }
+    else if(sel.mode==='duel'){ t.textContent='🤝 Pass & Play'; s.textContent='Two players, one screen. Last one standing wins.'; $('duelFields').style.display=''; $('matchWrap').style.display=''; $('nameA').value=P.name||'You'; }
     else if(sel.mode==='solo'){ t.textContent='⚡ Endless Solo'; s.textContent='Build the longest chain before the clock beats you.'; }
     else if(sel.mode==='daily'){ t.textContent='📅 Daily Challenge'; s.textContent = (P.dailyDoneDay===today())?"You've played today's word — come back tomorrow!":'Everyone gets the same word today.'; }
     else if(sel.mode==='party'){ t.textContent='🎉 Party Mode'; s.textContent='Pass the phone. Miss a word and you\'re out. Last standing wins.'; $('partyFields').style.display=''; }
@@ -662,7 +676,8 @@
   function startGame(){ Sound.resume();
     if(sel.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Already played today — see you tomorrow!'); return; }
     var diff=DIFF[sel.diff];
-    if(sel.mode==='duel'){ G={ mode:'duel', names:[($('nameA').value.trim()||'You'),($('nameB').value.trim()||'Rival')], scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 }; $('modeLabel').textContent='Duel'; nextRound(); }
+    if(sel.mode==='ai'){ var st=randWord(sel.len); G={ mode:'ai', level:sel.ai, names:[(P.name||'You'),'AI · '+cap(sel.ai)], turn:0, aiSide:1, len:sel.len, diff:diff, current:st, used:[st], limit:diff.start, remaining:diff.start, chain:0, aiTimer:null }; $('modeLabel').textContent='Solo vs AI'; go('game'); renderGame(); startTimer(); $('answer').focus(); }
+    else if(sel.mode==='duel'){ G={ mode:'duel', names:[($('nameA').value.trim()||'You'),($('nameB').value.trim()||'Rival')], scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 }; $('modeLabel').textContent='Duel'; nextRound(); }
     else if(sel.mode==='party'){ var names=[]; for(var i=0;i<sel.pc;i++)names.push('Player '+(i+1)); G={ mode:'party', names:names, alive:names.map(function(){return true;}), turn:0, len:sel.len, diff:diff, current:randWord(sel.len), used:[], limit:diff.start, remaining:diff.start, chain:0 }; G.used.push(G.current); $('modeLabel').textContent='Party'; go('game'); renderGame(); startTimer(); $('answer').focus(); }
     else { var len=sel.mode==='daily'?4:sel.len; var start=sel.mode==='daily'?dailyWord():randWord(len);
       G={ mode:sel.mode, len:len, diff:diff, current:start, used:[start], limit:diff.start, remaining:diff.start, score:0, chain:0, combo:0 }; $('modeLabel').textContent=sel.mode==='daily'?'Daily':'Solo'; go('game'); renderGame(); startTimer(); $('answer').focus(); }
@@ -670,8 +685,13 @@
   }
   function nextRound(){ G.roundNum++; var st=(G.firstPlayer+G.roundNum-1)%2; G.turn=st; G.current=randWord(G.len); G.used=[G.current]; G.limit=G.diff.start; G.remaining=G.diff.start; G.combo=0; G.chain=0; go('game'); renderGame(); startTimer(); $('answer').focus(); }
 
-  function renderGame(){ var sb=$('scoreboard');
-    if(G.mode==='duel'){ sb.style.display='flex'; sb.innerHTML='<div class="scell '+(G.turn===0?'on':'')+'"><div class="nm">'+esc(G.names[0])+'</div><div class="sc">'+G.scores[0]+'</div></div>'
+  function renderGame(){ var sb=$('scoreboard'); var aiTurn=(G.mode==='ai'&&G.turn===1);
+    $('answer').disabled=aiTurn; $('goBtn').disabled=aiTurn;
+    if(G.mode==='ai'){ sb.style.display='flex'; sb.innerHTML='<div class="scell '+(G.turn===0?'on':'')+'"><div class="nm">'+esc(G.names[0])+'</div><div class="sc" style="font-size:18px">'+(G.turn===0?'YOU':'—')+'</div></div>'
+        +'<div class="midp"><span>CHAIN</span><b>'+G.chain+'</b><span>vs AI</span></div>'
+        +'<div class="scell '+(G.turn===1?'on':'')+'"><div class="nm">'+esc(G.names[1])+'</div><div class="sc" style="font-size:18px">'+(G.turn===1?'🤔':'—')+'</div></div>';
+      $('turnPill').innerHTML = aiTurn ? '🤖 <b>'+esc(G.names[1])+'</b> is thinking…' : '✍️ Your turn'; }
+    else if(G.mode==='duel'){ sb.style.display='flex'; sb.innerHTML='<div class="scell '+(G.turn===0?'on':'')+'"><div class="nm">'+esc(G.names[0])+'</div><div class="sc">'+G.scores[0]+'</div></div>'
         +'<div class="midp"><span>ROUND</span><b>'+G.roundNum+'</b><span>'+(G.target===1?'single':'to '+G.target)+'</span></div>'
         +'<div class="scell '+(G.turn===1?'on':'')+'"><div class="nm">'+esc(G.names[1])+'</div><div class="sc">'+G.scores[1]+'</div></div>';
       $('turnPill').textContent=G.names[G.turn]+"'s turn"; }
@@ -680,23 +700,25 @@
     renderTiles(); $('answer').value=''; $('msg').textContent=''; renderChips(); renderCombo();
   }
   function esc(s){ return (s+'').replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}); }
-  function renderTiles(flip){ var w=G.current,h=''; for(var i=0;i<w.length;i++){ h+='<b'+(flip?' class="flip"':'')+' style="animation-delay:'+(i*.05)+'s">'+w[i]+'</b>'; } $('wtiles').innerHTML=h; }
+  function renderTiles(flip,prev){ var w=G.current,h=''; for(var i=0;i<w.length;i++){ var glow=(prev&&prev.length===w.length&&prev[i]!==w[i])?' glow':''; var cls=((flip?'flip':'')+glow).trim(); h+='<b'+(cls?' class="'+cls+'"':'')+' style="animation-delay:'+(i*.05)+'s">'+w[i]+'</b>'; } $('wtiles').innerHTML=h; }
   function renderChips(){ $('chips').innerHTML=(G.used||[]).slice(-14).map(function(w){return '<span>'+w+'</span>';}).join(''); }
   function renderCombo(){ $('comboLine').textContent=(G.combo>=2)?('🔥 Combo x'+G.combo):''; }
 
   function startTimer(){ stopTimer(); G.remaining=G.limit; lastSec=Math.ceil(G.remaining); updTimer(); var last=performance.now();
     ticker=setInterval(function(){ var now=performance.now(); G.remaining-=(now-last)/1000; last=now; if(G.remaining<=0){ G.remaining=0; updTimer(); stopTimer(); timeUp(); return; }
       var sec=Math.ceil(G.remaining); if(sec<=3&&sec!==lastSec){ lastSec=sec; Sound.tick(); haptic(10); } updTimer(); },50); }
-  function stopTimer(){ if(ticker){ clearInterval(ticker); ticker=null; } }
+  function stopTimer(){ if(ticker){ clearInterval(ticker); ticker=null; } if(G&&G.aiTimer){ clearTimeout(G.aiTimer); G.aiTimer=null; } }
   function updTimer(){ var t=G.remaining; $('tnum').textContent=Math.ceil(t); var frac=Math.max(0,t/G.limit); $('ringProg').style.strokeDashoffset=CIRC*(1-frac);
     var hi=t>G.limit*.5,mid=t>G.limit*.25; var col=hi?'var(--good)':(mid?'var(--warn)':'var(--bad)'); $('ringProg').style.stroke=col; $('tnum').style.color=hi?'var(--ink)':(mid?'var(--warn)':'var(--bad)'); }
 
-  function timeUp(){ if(G.shield){ G.shield=false; toast('🛡️','Shield saved you!'); Sound.up(); startTimer(); return; } Sound.err(); haptic(200);
+  function timeUp(){ if(G.shield){ G.shield=false; toast('🛡️','Shield saved you!'); Sound.up(); startTimer(); return; }
+    if(G.mode==='ai'){ if(G.turn===1){ endAi(0,'The AI ran out of time!'); } else { Sound.err(); haptic(200); endAi(1,'You ran out of time!'); } return; }
+    Sound.err(); haptic(200);
     if(G.mode==='duel'){ endDuelRound(1-G.turn, G.names[G.turn]+' ran out of time!'); }
     else if(G.mode==='party'){ partyOut(); }
     else endSolo(); }
 
-  function submit(){ if(!G)return; var guess=$('answer').value.trim().toLowerCase(); if(!guess)return; var fail=null;
+  function submit(){ if(!G)return; if(G.mode==='ai'&&G.turn!==0)return; var guess=$('answer').value.trim().toLowerCase(); if(!guess)return; var fail=null;
     if(!/^[a-z]+$/.test(guess))fail='Letters only';
     else if(guess===G.current)fail='Change one letter';
     else if(guess.length!==G.current.length)fail='Must be '+G.current.length+' letters';
@@ -707,10 +729,11 @@
     var fast=Math.max(0,G.remaining/G.limit), spent=G.limit-G.remaining;
     var pts=10+5*(G.current.length-3)+Math.round(fast*15); G.combo=(G.combo||0)+1; pts=Math.round(pts*(1+(G.combo-1)*.1));
     Sound.ok(); haptic(15); if(spent<P.stats.fastest)P.stats.fastest=Math.round(spent*10)/10;
-    G.current=guess; G.used.push(guess); G.chain=(G.chain||0)+1; P.stats.words++;
-    if(G.mode==='duel'){ G.turn=1-G.turn; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(3); addCoins(1); renderGame(); renderTiles(true); startTimer(); }
-    else if(G.mode==='party'){ do{ G.turn=(G.turn+1)%G.names.length; }while(!G.alive[G.turn]); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step*.5); addXP(1); renderGame(); renderTiles(true); startTimer(); }
-    else { G.score+=pts; scorePop(pts); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true); startTimer(); }
+    var prev=G.current; G.current=guess; G.used.push(guess); G.chain=(G.chain||0)+1; P.stats.words++;
+    if(G.mode==='ai'){ G.turn=1; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(2); renderGame(); renderTiles(true,prev); startTimer(); aiThink(); }
+    else if(G.mode==='duel'){ G.turn=1-G.turn; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(3); addCoins(1); renderGame(); renderTiles(true,prev); startTimer(); }
+    else if(G.mode==='party'){ do{ G.turn=(G.turn+1)%G.names.length; }while(!G.alive[G.turn]); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step*.5); addXP(1); renderGame(); renderTiles(true,prev); startTimer(); }
+    else { G.score+=pts; scorePop(pts); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true,prev); startTimer(); }
     if(G.combo===5){ toast('🔥','5 combo! On fire!'); confetti(); } if(spent<1.5)unlock('speed'); if(G.chain>=12)unlock('chain12'); if(G.chain>=25)unlock('chain25');
     save();
     try{ if(document.getElementById('game').classList.contains('active')) $('answer').focus(); }catch(e){}
@@ -722,6 +745,28 @@
   if(vv){ vv.addEventListener('resize',vvUpdate); vv.addEventListener('scroll',vvUpdate); vvUpdate(); }
   $('answer').addEventListener('focus',function(){ document.body.classList.add('kb'); vvUpdate(); setTimeout(function(){ window.scrollTo(0,0); vvUpdate(); },120); });
   $('answer').addEventListener('blur',function(){ document.body.classList.remove('kb'); setTimeout(function(){ window.scrollTo(0,0); },60); });
+
+  /* ---- AI opponent (Solo vs AI) ---- */
+  function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  // minF/maxF = fraction of the clock the AI "thinks" before answering; whiff = chance it fails; smart = picks tougher moves
+  var AI_CONF={ easy:{minF:.45,maxF:.80,whiff:.30,smart:false}, medium:{minF:.30,maxF:.60,whiff:.12,smart:false}, hard:{minF:.20,maxF:.45,whiff:.04,smart:true}, expert:{minF:.10,maxF:.30,whiff:0,smart:true} };
+  function aiThink(){ if(!G||G.mode!=='ai'||G.turn!==1) return; var conf=AI_CONF[G.level]||AI_CONF.medium;
+    var mv=moves(G.current,G.used); var whiff=(mv.length===0)||(Math.random()<conf.whiff); var choice=null;
+    if(mv.length){ if(conf.smart){ var ranked=mv.map(function(w){ return {w:w, n:moves(w,G.used.concat([w])).length}; }).sort(function(a,b){return a.n-b.n;});
+        choice = (G.level==='hard'&&Math.random()<.5) ? mv[Math.floor(Math.random()*mv.length)] : ranked[0].w; }
+      else { choice=mv[Math.floor(Math.random()*mv.length)]; } }
+    var delay=G.limit*(conf.minF+Math.random()*(conf.maxF-conf.minF)); delay=Math.min(delay,G.limit-0.25);
+    G.aiTimer=setTimeout(function(){ if(!G||G.mode!=='ai'||G.turn!==1) return; if(whiff||!choice) return; /* whiff => let clock run out */ aiPlay(choice); }, Math.max(300,delay*1000));
+  }
+  function aiPlay(word){ if(!G||G.mode!=='ai'||G.turn!==1) return; var prev=G.current; Sound.ok(); haptic(12);
+    G.current=word; G.used.push(word); G.chain=(G.chain||0)+1; G.turn=0; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step);
+    renderGame(); renderTiles(true,prev); startTimer(); try{ $('answer').focus(); }catch(e){} }
+  function endAi(winnerIdx,reason){ stopTimer(); var won=(winnerIdx===0); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain);
+    if(won){ P.stats.wins++; unlock('firstwin'); if(G.level==='hard')unlock('beathard'); if(G.level==='expert')unlock('beatexpert'); addXP(15); addCoins(5); bumpStreak(); }
+    else { addXP(4); }
+    save();
+    showResult({ em:won?'🏆':'🤖', title:won?'You beat the AI!':'The AI got you', body:reason, stats:[['Result',won?'WIN':'LOSS'],['AI',cap(G.level)],['Words',G.chain]], reward: won?[['🪙','+5'],['⭐','+15']]:[['⭐','+4']], mode:'ai' });
+    if(won){ confetti(); Sound.big(); haptic([30,50,30]); } else { Sound.err(); haptic(200); } }
 
   function partyOut(){ G.alive[G.turn]=false; var liveIdx=[]; G.alive.forEach(function(a,i){ if(a)liveIdx.push(i); }); toast('💥',G.names[G.turn]+' is out!');
     if(liveIdx.length<=1){ var w=liveIdx[0]; P.stats.games++; addXP(15); addCoins(6); bumpStreak(); save();
@@ -762,6 +807,8 @@
     {id:'streak7',ic:'📅',t:'Weekly Warrior',d:'7-day streak'},
     {id:'lvl5',ic:'🌟',t:'Rising Star',d:'Reach level 5'},
     {id:'lvl10',ic:'💫',t:'Word Star',d:'Reach level 10'},
+    {id:'beathard',ic:'😤',t:'AI Slayer',d:'Beat the Hard AI'},
+    {id:'beatexpert',ic:'🧠',t:'Grandmaster',d:'Beat the Expert AI'},
     {id:'themer',ic:'🎨',t:'Stylist',d:'Unlock a new theme'} ];
   function unlock(id){ if(P.ach[id])return; P.ach[id]=true; save(); var a=ACH.filter(function(x){return x.id===id;})[0]; if(a){ toast(a.ic,'Badge: '+a.t); confetti(); Sound.up(); haptic([20,30,20]); } }
 
