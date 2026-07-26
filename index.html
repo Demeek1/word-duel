@@ -254,6 +254,64 @@
   .switch{ width:52px; height:30px; border-radius:20px; background:rgba(255,255,255,.2); position:relative; cursor:pointer; transition:background .2s; }
   .switch.on{ background:var(--good); } .switch .k{ position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; transition:left .2s; }
   .switch.on .k{ left:25px; }
+  /* ================= PREMIUM EVOLUTION LAYER ================= */
+  body{ font-family:-apple-system,"SF Pro Display","SF Pro Text","Inter",system-ui,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; letter-spacing:-.01em; }
+  h1,h2,h3,.brand h1{ letter-spacing:-.025em; }
+
+  /* icon primitives */
+  .ic-svg{ width:24px; height:24px; display:inline-block; vertical-align:middle; flex:0 0 auto; }
+  .ic-svg.ic-sm{ width:17px; height:17px; }
+  .ico{ display:inline-flex; align-items:center; justify-content:center; line-height:0; }
+  .ico .ic-svg{ width:20px; height:20px; }
+
+  /* HUD */
+  .prof{ padding:10px 12px; }
+  .avatar{ border-radius:16px; box-shadow:0 8px 20px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.3); }
+  .pill{ gap:7px; padding:7px 13px; border-radius:16px; }
+  .pill .ico .ic-svg{ width:18px; height:18px; }
+  .pill .ico[data-ic="coins"]{ color:var(--gold); }
+  .ico-flame{ color:#ff7a45; }
+
+  /* mode cards */
+  .mode{ padding:18px; border-radius:26px; gap:16px; transition:transform .14s cubic-bezier(.2,.9,.3,1.25), box-shadow .2s; }
+  .mode:active{ transform:scale(.97); }
+  .mode h3{ font-size:19px; } .mode p{ margin-top:4px; font-size:13px; }
+  .mode .ic{ color:#fff; box-shadow:0 10px 22px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.28); }
+  .mode .ic .ic-svg{ width:30px; height:30px; }
+  .mode .ic-ai{ background:linear-gradient(140deg,#8b7bff,#a44dff)!important; }
+  .mode .ic-duel{ background:linear-gradient(140deg,#ff6a97,#ff9a5a)!important; }
+  .mode .ic-online{ background:linear-gradient(140deg,#4cc9f0,#5b8cff)!important; }
+  .mode .go{ color:var(--muted); } .mode .go .ic-svg{ width:22px; height:22px; }
+
+  /* practice + power-ups */
+  #practiceRow button{ display:flex; align-items:center; justify-content:center; gap:8px; }
+  #practiceRow .ico .ic-svg{ width:18px; height:18px; color:var(--acc); }
+  .pw .ic-svg{ width:24px; height:24px; color:#fff; }
+  .pwico{ display:inline-flex; } .pwico .ic-svg{ width:22px; height:22px; color:var(--p1); }
+
+  /* floating glass bottom nav */
+  .nav{ margin:14px 8px calc(env(safe-area-inset-bottom) + 6px); padding:8px; border-radius:26px; gap:4px;
+    background:rgba(255,255,255,.10)!important; border:1px solid rgba(255,255,255,.16); box-shadow:0 16px 44px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.18); }
+  .nav button{ position:relative; gap:4px; padding:9px 2px; border-radius:18px; transition:color .2s, transform .15s; }
+  .nav button .ni{ display:inline-flex; transition:transform .18s; } .nav button .ni .ic-svg{ width:23px; height:23px; }
+  .nav button.on{ color:#fff; background:transparent!important; }
+  .nav button.on::before{ content:""; position:absolute; inset:5px; border-radius:15px; background:linear-gradient(135deg,rgba(124,107,255,.6),rgba(255,93,143,.5)); box-shadow:0 8px 20px rgba(124,107,255,.5); z-index:-1; }
+  .nav button.on .ni{ transform:translateY(-2px) scale(1.05); }
+  .nav button:active{ transform:scale(.9); }
+
+  /* buttons — spring press */
+  .btn{ transition:transform .12s cubic-bezier(.2,.9,.3,1.35), box-shadow .2s, filter .2s; letter-spacing:-.01em; }
+  .btn:active{ transform:translateY(2px) scale(.985); }
+  .btn .ico{ margin-right:2px; } .btn .ico .ic-svg{ width:20px; height:20px; }
+  .iconbtn{ display:inline-flex; align-items:center; justify-content:center; } .iconbtn .ic-svg{ width:20px; height:20px; }
+  .backbtn .ic-svg{ width:18px; height:18px; }
+  .rows .ico{ margin-right:4px; } .rows .ico .ic-svg{ width:19px; height:19px; color:var(--muted); }
+
+  /* panels + tiles depth */
+  .panel{ padding:22px; border-radius:28px; }
+  .panel h2{ font-weight:800; }
+  .wtiles b{ border-radius:16px; box-shadow:0 8px 0 rgba(0,0,0,.16), 0 12px 20px rgba(0,0,0,.24), inset 0 2px 0 rgba(255,255,255,.72); }
+  .glass{ border-radius:26px; }
 </style>
 </head>
 <body>
@@ -292,21 +350,21 @@
         </div>
       </div>
       <div class="curr">
-        <div class="pill">🪙<span id="hudCoins">0</span></div>
-        <div class="pill">🔥<span id="hudStreak">0</span></div>
+        <div class="pill"><span class="ico" data-ic="coins"></span><span id="hudCoins">0</span></div>
+        <div class="pill"><span class="ico ico-flame" data-ic="flame"></span><span id="hudStreak">0</span></div>
       </div>
     </div>
 
     <div class="brand"><div class="logo"><b>S</b><b>W</b><b>A</b><b>P</b></div><h1>WordSwap</h1><p>Change one letter. Keep the word alive.</p></div>
 
     <div class="modes">
-      <button class="mode glass" data-mode="ai"><div class="ic">🤖</div><div><h3>Solo vs AI</h3><p>Practice anytime against 4 AI levels.</p></div><div class="go">›</div></button>
-      <button class="mode glass" data-mode="duel"><div class="ic">🤝</div><div><h3>Pass &amp; Play <span class="tag hot">2P</span></h3><p>Two players share one phone. Great for family.</p></div><div class="go">›</div></button>
-      <button class="mode glass locked" data-mode="online"><div class="ic">🌐</div><div><h3>Online Friend Match <span class="tag soon">SOON</span></h3><p>Room code &amp; invite link. Real-time — building next.</p></div><div class="go">🔒</div></button>
+      <button class="mode glass" data-mode="ai"><div class="ic ic-ai" data-ic="bot"></div><div><h3>Solo vs AI</h3><p>Practice anytime against 4 AI levels.</p></div><div class="go" data-ic="chevron"></div></button>
+      <button class="mode glass" data-mode="duel"><div class="ic ic-duel" data-ic="users"></div><div><h3>Pass &amp; Play <span class="tag hot">2P</span></h3><p>Two players share one phone. Great for family.</p></div><div class="go" data-ic="chevron"></div></button>
+      <button class="mode glass locked" data-mode="online"><div class="ic ic-online" data-ic="globe"></div><div><h3>Online Friend Match <span class="tag soon">SOON</span></h3><p>Room code &amp; invite link. Real-time — building next.</p></div><div class="go" data-ic="chevron"></div></button>
     </div>
     <div class="seg" id="practiceRow" style="margin-top:12px;">
-      <button data-pmode="solo">⚡ Endless Solo</button>
-      <button data-pmode="daily">📅 Daily</button>
+      <button data-pmode="solo"><span class="ico" data-ic="zap"></span> Endless Solo</button>
+      <button data-pmode="daily"><span class="ico" data-ic="calendar"></span> Daily</button>
     </div>
     <div class="foot" id="dailyTip"></div>
   </section>
@@ -350,7 +408,7 @@
   <!-- GAME -->
   <section id="game" class="screen">
     <div class="gtop">
-      <button class="iconbtn" data-home>✕</button>
+      <button class="iconbtn" data-home data-ic="close"></button>
       <div style="font-weight:900" id="modeLabel">Duel</div>
       <button class="iconbtn" id="sndG">🔊</button>
     </div>
@@ -378,8 +436,8 @@
         <div class="statgrid" id="resStats"></div>
         <div class="reward" id="resReward"></div>
         <button class="btn alt" id="againBtn">Play again ▶</button>
-        <button class="btn ghost" id="shareBtn">📤 Share</button>
-        <button class="btn ghost" data-home>🏠 Home</button>
+        <button class="btn ghost" id="shareBtn"><span class="ico" data-ic="share"></span> Share</button>
+        <button class="btn ghost" data-home><span class="ico" data-ic="home"></span> Home</button>
       </div>
     </div>
   </section>
@@ -388,10 +446,10 @@
   <section id="shop" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
     <div class="glass panel">
-      <h2>🎨 Themes</h2>
-      <div class="sub">Unlock with 🪙 coins. Tap to equip.</div>
+      <h2>Themes</h2>
+      <div class="sub">Unlock with coins. Tap to equip.</div>
       <div class="grid2" id="themeGrid"></div>
-      <h2 style="margin-top:18px;">⚡ Power-ups</h2>
+      <h2 style="margin-top:18px;">Power-ups</h2>
       <div class="sub">Buy with coins. Use them in Solo, Duel &amp; Party.</div>
       <div id="pwShop"></div>
     </div>
@@ -406,10 +464,10 @@
         <div><div style="font-size:22px; font-weight:900" id="pfName">Player</div><div style="color:var(--muted); font-weight:800" id="pfTitle">Rookie</div></div>
       </div>
       <div class="statgrid" id="pfStats" style="margin-top:16px;"></div>
-      <h2 style="margin-top:18px; font-size:18px;">🏅 Badges</h2>
+      <h2 style="margin-top:18px; font-size:18px;">Badges</h2>
       <div class="sub" id="pfAchCount"></div>
       <div id="pfAch"></div>
-      <h2 style="margin-top:14px; font-size:18px;">🏆 Local Leaderboard</h2>
+      <h2 style="margin-top:14px; font-size:18px;">Local Leaderboard</h2>
       <div class="sub">Best solo runs on this device.</div>
       <div class="lead" id="pfLead"></div>
     </div>
@@ -419,13 +477,13 @@
   <section id="online" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
     <div class="glass panel">
-      <h2>🌐 Online Friend Match</h2>
+      <h2>Online Friend Match</h2>
       <div class="sub">Create a room and share the code — or join a friend's room.</div>
       <label>Word length</label>
       <div class="seg" id="olenSeg"><button data-olen="3">3</button><button data-olen="4" class="active">4</button><button data-olen="5">5</button></div>
       <label>Clock speed</label>
       <div class="seg" id="odiffSeg"><button data-odiff="chill">Chill</button><button data-odiff="normal" class="active">Normal</button><button data-odiff="blitz">Blitz</button><button data-odiff="insane">Insane</button></div>
-      <button class="btn" id="createRoomBtn">➕ Create a Room</button>
+      <button class="btn" id="createRoomBtn"><span class="ico" data-ic="plus"></span> Create a Room</button>
       <div style="text-align:center; margin:14px 0 4px; color:var(--muted); font-weight:700;">— or —</div>
       <label>Join with a code</label>
       <div style="display:flex; gap:8px;">
@@ -433,7 +491,7 @@
         <button class="btn alt" id="joinRoomBtn" style="margin:0; width:auto; padding:0 20px;">Join</button>
       </div>
       <div class="msg" id="onlineMsg" style="color:var(--bad);"></div>
-      <div class="sub" style="margin-top:10px;">First online match may take ~30s while the free server wakes up. ⏳</div>
+      <div class="sub" style="margin-top:10px;">First online match may take ~30s while the free server wakes up.</div>
     </div>
   </section>
 
@@ -441,12 +499,12 @@
   <section id="lobby" class="screen">
     <button class="backbtn" id="leaveLobbyBtn">‹ Leave room</button>
     <div class="glass panel">
-      <h2 id="lobbyTitle">Room ready 🎮</h2>
+      <h2 id="lobbyTitle">Room ready</h2>
       <div class="sub">Share this with your friend so they can join.</div>
       <div id="roomCode" style="font-size:38px; font-weight:900; letter-spacing:8px; text-align:center; margin:8px 0; text-shadow:0 3px 12px rgba(0,0,0,.3);">------</div>
       <div style="display:flex; gap:8px;">
-        <button class="btn ghost" id="copyCodeBtn" style="margin:0;">📋 Copy code</button>
-        <button class="btn ghost" id="copyLinkBtn" style="margin:0;">🔗 Copy link</button>
+        <button class="btn ghost" id="copyCodeBtn" style="margin:0;"><span class="ico" data-ic="copy"></span> Copy code</button>
+        <button class="btn ghost" id="copyLinkBtn" style="margin:0;"><span class="ico" data-ic="link"></span> Copy link</button>
       </div>
       <div id="qrBox" style="display:flex; justify-content:center; margin:16px 0;"></div>
       <div id="lobbyPlayers"></div>
@@ -459,11 +517,11 @@
   <section id="board" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
     <div class="glass panel">
-      <h2>🌍 Leaderboard</h2>
+      <h2>Leaderboard</h2>
       <div class="sub" id="boardSub">Compete with players worldwide.</div>
       <div class="tabs" id="boardTabs">
-        <button data-tab="global" class="on">🏆 Global</button>
-        <button data-tab="daily">📅 Daily</button>
+        <button data-tab="global" class="on">Global</button>
+        <button data-tab="daily">Daily</button>
       </div>
       <div class="lead" id="boardList"><div class="sub">Loading…</div></div>
     </div>
@@ -473,14 +531,14 @@
   <section id="settings" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
     <div class="glass panel">
-      <h2>⚙️ Settings</h2>
+      <h2>Settings</h2>
       <div class="sub">Everything saves on this device.</div>
       <div id="accountRow" style="padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.1);"></div>
-      <div class="rows"><div>🔊 Sound effects</div><div class="switch" id="swSound"><div class="k"></div></div></div>
-      <div class="rows"><div>📳 Haptics (vibration)</div><div class="switch" id="swHaptic"><div class="k"></div></div></div>
-      <div class="rows"><div>✏️ Change name / avatar</div><button class="iconbtn" id="editProfBtn" style="width:auto; padding:0 12px;">Edit</button></div>
-      <div class="rows"><div>❔ How to play</div><button class="iconbtn" id="howBtn" style="width:auto; padding:0 12px;">Open</button></div>
-      <div class="rows"><div style="color:var(--bad)">🗑️ Reset all progress</div><button class="iconbtn" id="resetBtn" style="width:auto; padding:0 12px; color:var(--bad)">Reset</button></div>
+      <div class="rows"><div>Sound effects</div><div class="switch" id="swSound"><div class="k"></div></div></div>
+      <div class="rows"><div>Haptics (vibration)</div><div class="switch" id="swHaptic"><div class="k"></div></div></div>
+      <div class="rows"><div>Change name / avatar</div><button class="iconbtn" id="editProfBtn" style="width:auto; padding:0 12px;">Edit</button></div>
+      <div class="rows"><div>How to play</div><button class="iconbtn" id="howBtn" style="width:auto; padding:0 12px;">Open</button></div>
+      <div class="rows"><div style="color:var(--bad)">Reset all progress</div><button class="iconbtn" id="resetBtn" style="width:auto; padding:0 12px; color:var(--bad)">Reset</button></div>
       <div class="foot">WordSwap · Phase 0 (offline). Online leagues, tournaments &amp; worldwide multiplayer are coming next.</div>
     </div>
   </section>
@@ -500,6 +558,45 @@
   var WORDS=(window.WORD_LIST||[]).map(function(w){return w.toLowerCase();});
   var DICT=new Set(WORDS), BY_LEN={}; DICT.forEach(function(w){(BY_LEN[w.length]=BY_LEN[w.length]||[]).push(w);});
   var $=function(i){return document.getElementById(i);};
+  /* ---- consistent inline icon set (Lucide-style, stroke, currentColor) ---- */
+  var ICONS={
+    home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"/><path d="M10 20v-6h4v6"/>',
+    bot:'<rect x="4" y="8" width="16" height="12" rx="3.5"/><path d="M12 4v4"/><circle cx="12" cy="3" r="1.2"/><circle cx="9" cy="14" r="1.1"/><circle cx="15" cy="14" r="1.1"/><path d="M2 13v3"/><path d="M22 13v3"/>',
+    users:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.3 2.7-5.2 5.5-5.2s5.5 1.9 5.5 5.2"/><path d="M16 5.5a3.2 3.2 0 010 6"/><path d="M15.5 15c2.7.2 4.7 2 4.7 5"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.7 2.8 2.7 15.2 0 18"/><path d="M12 3c-2.7 2.8-2.7 15.2 0 18"/>',
+    trophy:'<path d="M7 4h10v5a5 5 0 01-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 002.5 3.5"/><path d="M17 6h2.5a2.5 2.5 0 01-2.5 3.5"/><path d="M12 14v3"/><path d="M9 20h6"/><path d="M9.5 20a2.5 2.5 0 015 0"/>',
+    bag:'<path d="M6 8h12l-.7 10.6a2 2 0 01-2 1.9H8.7a2 2 0 01-2-1.9z"/><path d="M8.5 8V7a3.5 3.5 0 017 0v1"/><path d="M9 12v-1"/><path d="M15 12v-1"/>',
+    settings:'<path d="M4 7h8"/><circle cx="15.5" cy="7" r="2.3"/><path d="M19 7h1"/><path d="M4 17h4"/><circle cx="11.5" cy="17" r="2.3"/><path d="M15 17h5"/>',
+    user:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4 3.5-6 7.5-6s7.5 2 7.5 6"/>',
+    coins:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>',
+    flame:'<path d="M12 3c2.8 3.6 4.5 5.6 4.5 9a4.5 4.5 0 01-9 0c0-1.8.9-3.2 2.2-4.4.2 1.2.9 1.9 1.8 2.1C11.7 8 11.5 5.5 12 3z"/>',
+    heart:'<path d="M12 20s-6.8-4.3-6.8-9.2A3.4 3.4 0 0112 7a3.4 3.4 0 016.8 3.8C18.8 15.7 12 20 12 20z"/>',
+    zap:'<path d="M13 2L5 13h6l-1 9 8-11h-6l1-9z"/>',
+    calendar:'<rect x="4" y="5" width="16" height="16" rx="2.5"/><path d="M4 9.5h16"/><path d="M8 3v4"/><path d="M16 3v4"/>',
+    bulb:'<path d="M9.5 18h5"/><path d="M10 21h4"/><path d="M12 3a6 6 0 00-3.8 10.7c.6.5.8 1 .8 1.8h6c0-.8.2-1.3.8-1.8A6 6 0 0012 3z"/>',
+    timer:'<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/>',
+    radar:'<path d="M20 12a8 8 0 10-8 8"/><path d="M12 12l5.5-3.2"/><path d="M12 12a5 5 0 105 5"/>',
+    shield:'<path d="M12 3l7 2.8v5.4c0 4.7-3 7.6-7 9.3-4-1.7-7-4.6-7-9.3V5.8z"/>',
+    sparkle:'<path d="M12 3l1.9 5.4L19 10l-5.1 1.6L12 17l-1.9-5.4L5 10l5.1-1.6z"/>',
+    chevron:'<path d="M9 5l7 7-7 7"/>',
+    close:'<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+    sound:'<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 010 7"/>',
+    mute:'<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9.5l4 5M20 9.5l-4 5"/>',
+    copy:'<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 012-2h9"/>',
+    link:'<path d="M10.5 13.5a4 4 0 005.7 0l2.3-2.3a4 4 0 00-5.7-5.7l-1 1"/><path d="M13.5 10.5a4 4 0 00-5.7 0l-2.3 2.3a4 4 0 005.7 5.7l1-1"/>',
+    back:'<path d="M15 5l-7 7 7 7"/>',
+    play:'<path d="M7 5l12 7-12 7z"/>',
+    gamepad:'<rect x="3" y="8" width="18" height="9" rx="4.5"/><path d="M8 11v3"/><path d="M6.5 12.5h3"/><circle cx="15.5" cy="12" r="1"/><circle cx="17.5" cy="14" r="1"/>',
+    refresh:'<path d="M20 12a8 8 0 01-14.3 5"/><path d="M4 12a8 8 0 0114.3-5"/><path d="M18 3v4h-4"/><path d="M6 21v-4h4"/>',
+    share:'<circle cx="17" cy="6" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="17" cy="18" r="2.5"/><path d="M8.2 10.9l6.6-3.8"/><path d="M8.2 13.1l6.6 3.8"/>',
+    trash:'<path d="M5 7h14"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7"/><path d="M6.5 7l1 12.5A1.5 1.5 0 009 21h6a1.5 1.5 0 001.5-1.5L17.5 7"/>',
+    help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 014.7 1.1c0 1.7-2.2 2-2.2 3.4"/><circle cx="12" cy="17" r="0.6"/>',
+    edit:'<path d="M4 20h4L18.5 9.5a2 2 0 00-2.8-2.8L5 17z"/><path d="M13.5 6.5l4 4"/>',
+    plus:'<path d="M12 5v14"/><path d="M5 12h14"/>',
+    check:'<path d="M5 12.5l4.2 4.2L19 6.5"/>',
+    lock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 018 0v3"/>'
+  };
+  function IC(n,cls){ var p=ICONS[n]||''; return '<svg class="ic-svg'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; }
   var DIFF={ chill:{start:12,step:.3}, normal:{start:10,step:.5}, blitz:{start:8,step:.75}, insane:{start:7,step:1} };
   var MIN_LIMIT=5;
   var AVATARS=['😀','😎','🦊','🐼','🐯','🦁','🐸','🐶','🐵','🦄','🐲','👾','🤖','👑','🍀','⭐','🔥','🌈'];
@@ -655,8 +752,8 @@
   function home(){ stopTimer(); if(typeof onlineCleanup==='function') onlineCleanup(); stack=['home']; go('home'); refreshHome(); }
   document.querySelectorAll('[data-home]').forEach(function(b){ b.addEventListener('click',home); });
 
-  var NAV=[['home','🏠','Home'],['board','🌍','Ranks'],['shop','🎨','Shop'],['profile','👤','Profile'],['settings','⚙️','More']];
-  (function(){ $('nav').innerHTML=NAV.map(function(n){return '<button data-nav="'+n[0]+'"><span class="ni">'+n[1]+'</span>'+n[2]+'</button>';}).join('');
+  var NAV=[['home','home','Home'],['board','trophy','Ranks'],['shop','bag','Shop'],['profile','user','Profile'],['settings','settings','More']];
+  (function(){ $('nav').innerHTML=NAV.map(function(n){return '<button data-nav="'+n[0]+'"><span class="ni">'+IC(n[1])+'</span>'+n[2]+'</button>';}).join('');
     $('nav').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ var t=b.dataset.nav;
       if(t==='home'){ home(); } else { if(t==='shop')renderShop(); if(t==='profile')renderProfile(); if(t==='settings')renderSettings(); if(t==='board')openBoard(); go(t); } }); }); })();
   function syncNav(id){ $('nav').querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.nav===id); }); }
@@ -716,10 +813,10 @@
   $('playBtn').addEventListener('click',startGame);
 
   /* ---- powerups ---- */
-  var PW=[['hint','💡','Hint'],['time','⏱️','+3s'],['radar','📡','Radar'],['shield','🛡️','Shield']];
+  var PW=[['hint','bulb','Hint'],['time','timer','+3s'],['radar','radar','Radar'],['shield','shield','Shield']];
   var PW_COST={ hint:20, time:25, radar:15, shield:40 };
   function renderPowerbar(){ if(!G || G.mode==='party'){ $('powerbar').innerHTML=''; return; }
-    $('powerbar').innerHTML=PW.map(function(p){ var n=P.powers[p[0]]||0; return '<div class="pw '+(n<=0?'empty':'')+'" data-pw="'+p[0]+'">'+p[1]+'<span class="cnt">'+n+'</span></div>'; }).join('');
+    $('powerbar').innerHTML=PW.map(function(p){ var n=P.powers[p[0]]||0; return '<div class="pw '+(n<=0?'empty':'')+'" data-pw="'+p[0]+'">'+IC(p[1])+'<span class="cnt">'+n+'</span></div>'; }).join('');
     $('powerbar').querySelectorAll('.pw').forEach(function(el){ el.addEventListener('click',function(){ usePower(el.dataset.pw); }); }); }
   function usePower(id){ if(!G||G.mode==='party')return; if((P.powers[id]||0)<=0){ toast('🛒','Out of '+id+' — buy more in Shop'); return; }
     if(id==='hint'){ var m=moves(G.current,G.used); if(!m.length){ toast('💡','No valid moves left!'); return; } var w=m[Math.floor(Math.random()*m.length)]; var pos=0; for(var i=0;i<w.length;i++){ if(w[i]!==G.current[i]){pos=i;break;} } toast('💡','Try changing letter '+(pos+1)+' → "'+w[pos].toUpperCase()+'"'); }
@@ -875,10 +972,10 @@
   /* ---- shop ---- */
   function renderShop(){ $('themeGrid').innerHTML=Object.keys(THEMES).map(function(id){ var t=THEMES[id]; var owned=P.themesOwned.indexOf(id)>=0; var on=P.theme===id;
     return '<div class="theme-card '+(on?'on':'')+'" data-theme="'+id+'" style="background:linear-gradient(150deg,'+t.a+','+t.b+' 55%,'+t.c+')">'
-      +'<span class="lockic">'+(owned?(on?'✅':''):'🔒')+'</span><div class="tn">'+t.name+'</div><div class="tc">'+(owned?(on?'Equipped':'Tap to equip'):('🪙 '+t.cost))+'</div></div>'; }).join('');
+      +'<span class="lockic">'+(owned?(on?IC('check','ic-sm'):''):IC('lock','ic-sm'))+'</span><div class="tn">'+t.name+'</div><div class="tc">'+(owned?(on?'Equipped':'Tap to equip'):('<span class="ico" style="vertical-align:-3px">'+IC('coins','ic-sm')+'</span> '+t.cost))+'</div></div>'; }).join('');
     $('themeGrid').querySelectorAll('[data-theme]').forEach(function(el){ el.addEventListener('click',function(){ buyOrEquipTheme(el.dataset.theme); }); });
-    $('pwShop').innerHTML=PW.map(function(p){ return '<div class="rows"><div>'+p[1]+' <b>'+p[2]+'</b> <span style="color:var(--muted)">×'+(P.powers[p[0]]||0)+'</span></div><button class="iconbtn" style="width:auto; padding:0 12px;" data-buy="'+p[0]+'">🪙 '+PW_COST[p[0]]+'</button></div>'; }).join('');
-    $('pwShop').querySelectorAll('[data-buy]').forEach(function(b){ b.addEventListener('click',function(){ var id=b.dataset.buy; if(P.coins<PW_COST[id]){ toast('🪙','Not enough coins'); return; } P.coins-=PW_COST[id]; P.powers[id]=(P.powers[id]||0)+1; Sound.coin(); toast(PW.filter(function(x){return x[0]===id;})[0][1],'+1 '+id); renderHUD(); renderShop(); save(); }); }); }
+    $('pwShop').innerHTML=PW.map(function(p){ return '<div class="rows"><div style="display:flex;align-items:center;gap:10px;"><span class="pwico">'+IC(p[1])+'</span><b>'+p[2]+'</b> <span style="color:var(--muted)">×'+(P.powers[p[0]]||0)+'</span></div><button class="iconbtn" style="width:auto; padding:0 14px;" data-buy="'+p[0]+'">'+IC('coins','ic-sm')+' '+PW_COST[p[0]]+'</button></div>'; }).join('');
+    $('pwShop').querySelectorAll('[data-buy]').forEach(function(b){ b.addEventListener('click',function(){ var id=b.dataset.buy; if(P.coins<PW_COST[id]){ toast(IC('coins'),'Not enough coins'); return; } P.coins-=PW_COST[id]; P.powers[id]=(P.powers[id]||0)+1; Sound.coin(); toast(IC(PW.filter(function(x){return x[0]===id;})[0][1]),'+1 '+PW.filter(function(x){return x[0]===id;})[0][2]); renderHUD(); renderShop(); save(); }); }); }
   function buyOrEquipTheme(id){ var t=THEMES[id]; if(P.themesOwned.indexOf(id)<0){ if(P.coins<t.cost){ toast('🪙','Need '+t.cost+' coins'); return; } P.coins-=t.cost; P.themesOwned.push(id); Sound.coin(); confetti(); unlock('themer'); toast('🎨','Unlocked '+t.name+'!'); }
     P.theme=id; applyTheme(id); renderHUD(); renderShop(); save(); }
 
@@ -893,9 +990,9 @@
 
   /* ---- settings ---- */
   function renderSettings(){ $('swSound').classList.toggle('on',P.sound); $('swHaptic').classList.toggle('on',P.haptic); updateAccountUI(); }
-  $('swSound').addEventListener('click',function(){ P.sound=!P.sound; renderSettings(); save(); if(P.sound)Sound.resume(); $('sndG').textContent=P.sound?'🔊':'🔇'; });
+  $('swSound').addEventListener('click',function(){ P.sound=!P.sound; renderSettings(); save(); if(P.sound)Sound.resume(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute'); });
   $('swHaptic').addEventListener('click',function(){ P.haptic=!P.haptic; renderSettings(); save(); if(P.haptic)haptic(20); });
-  $('sndG').addEventListener('click',function(){ P.sound=!P.sound; save(); $('sndG').textContent=P.sound?'🔊':'🔇'; renderSettings(); });
+  $('sndG').addEventListener('click',function(){ P.sound=!P.sound; save(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute'); renderSettings(); });
   $('editProfBtn').addEventListener('click',function(){ openOnboard(true); });
   $('howBtn').addEventListener('click',function(){ modal('<div class="em">❔</div><h3>How to play</h3><p style="text-align:left; line-height:1.7; margin-top:8px;">🔤 You get a word like <b>BOOK</b>.<br>✏️ Change <b>one letter</b> to make a new word — <b>BOOK→TOOK</b>.<br>⏱️ Beat the shrinking clock (down to 5s).<br>🚫 No repeats.<br>⭐ Fast + longer words + combos = more points, coins &amp; XP.<br>⚡ Spend power-ups to hint, add time, scan, or shield.</p><button class="btn" data-close>Got it 👍</button>'); });
   $('resetBtn').addEventListener('click',function(){ modal('<div class="em">🗑️</div><h3>Reset everything?</h3><p>This wipes your level, coins, themes and stats on this device. Cannot be undone.</p><button class="btn" style="background:linear-gradient(135deg,#ff6b6b,#c92a2a)" id="doReset">Yes, reset</button><button class="btn ghost" data-close>Cancel</button>');
@@ -907,10 +1004,11 @@
     $('obName').value=P.name||''; $('obStart').textContent=edit?'Save':'Let\'s play ▶'; go('onboard'); }
   $('obStart').addEventListener('click',function(){ var n=$('obName').value.trim(); if(!n){ toast('✏️','Enter a name'); return; } P.name=n; save(); renderHUD(); home(); });
 
-  function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'✅ Daily done — streak safe! Come back tomorrow.':'📅 New Daily Challenge available!';
+  function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'Daily done — streak safe. Come back tomorrow.':'New Daily Challenge available';
     var oc=document.querySelector('.mode[data-mode="online"]');
-    if(oc){ if(serverUrl()){ oc.classList.remove('locked'); var tg=oc.querySelector('.tag'); if(tg){ tg.textContent='LIVE'; tg.className='tag hot'; } var pp=oc.querySelector('p'); if(pp) pp.textContent='Create a room & invite a friend — real-time!'; var go=oc.querySelector('.go'); if(go) go.textContent='›'; }
-      else { oc.classList.add('locked'); var tg2=oc.querySelector('.tag'); if(tg2){ tg2.textContent='SOON'; tg2.className='tag soon'; } var go2=oc.querySelector('.go'); if(go2) go2.textContent='🔒'; } }
+    if(oc){ var go=oc.querySelector('.go'); if(go) go.innerHTML=IC('chevron');
+      if(serverUrl()){ oc.classList.remove('locked'); var tg=oc.querySelector('.tag'); if(tg){ tg.textContent='LIVE'; tg.className='tag hot'; } var pp=oc.querySelector('p'); if(pp) pp.textContent='Create a room & invite a friend — real-time!'; }
+      else { oc.classList.add('locked'); var tg2=oc.querySelector('.tag'); if(tg2){ tg2.textContent='SOON'; tg2.className='tag soon'; } } }
   }
 
   /* ---- daily reward on open ---- */
@@ -1012,7 +1110,9 @@
   $('leaveLobbyBtn').addEventListener('click',function(){ onlineCleanup(); home(); });
   $('answer').addEventListener('input',function(){ if(ONLINE&&O&&O.turnUserId===myUidGet()){ emitTyping(true); clearTimeout(typingT); typingT=setTimeout(function(){ emitTyping(false); },1200); } });
 
-  applyTheme(P.theme); renderHUD(); updateAccountUI(); $('sndG').textContent=P.sound?'🔊':'🔇';
+  // inject all static-markup icons
+  document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=IC(el.getAttribute('data-ic')); });
+  applyTheme(P.theme); renderHUD(); updateAccountUI(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute');
   if(!P.name){ openOnboard(false); } else { go('home'); refreshHome(); dailyRewardCheck(); }
   // invite-link auto-join: ?room=CODE
   (function(){ var m=(location.search||'').match(/[?&]room=([A-Za-z0-9]{4,6})/); if(m && serverUrl() && P.name){ setTimeout(function(){ openOnline(); $('joinCode').value=m[1].toUpperCase(); joinRoomCode(m[1]); },400); } })();
