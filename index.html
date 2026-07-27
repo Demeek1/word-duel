@@ -236,7 +236,8 @@
 
   /* ---- keyboard-open compact mode: keep timer + word + input visible ---- */
   body.kb .app{ height:var(--vvh,100dvh); min-height:0; overflow:hidden; padding-top:8px; padding-bottom:6px; }
-  body.kb #game .gtop{ display:none; }
+  body.kb #game .gtop{ margin-bottom:4px; }
+  body.kb #game .gtop .iconbtn{ width:34px; height:34px; }
   body.kb #game .powerbar{ display:none; }
   body.kb #game .chips{ display:none; }
   body.kb #game .combo{ display:none; }
@@ -312,6 +313,38 @@
   .panel h2{ font-weight:800; }
   .wtiles b{ border-radius:16px; box-shadow:0 8px 0 rgba(0,0,0,.16), 0 12px 20px rgba(0,0,0,.24), inset 0 2px 0 rgba(255,255,255,.72); }
   .glass{ border-radius:26px; }
+
+  /* ============ PER-MODE IDENTITY (differentiated but synchronized) ============ */
+  :root{ --m1:#8b7bff; --m2:#a44dff; --m-soft:rgba(139,123,255,.16); --m-glow:rgba(139,123,255,.5); }
+  body[data-gm="ai"]{ --m1:#8b7bff; --m2:#7a5cff; --m-soft:rgba(139,123,255,.18); --m-glow:rgba(124,107,255,.55); }
+  body[data-gm="duel"]{ --m1:#ff6a97; --m2:#ff9a5a; --m-soft:rgba(255,120,140,.18); --m-glow:rgba(255,106,151,.55); }
+  body[data-gm="online"]{ --m1:#4cc9f0; --m2:#5b8cff; --m-soft:rgba(76,201,240,.20); --m-glow:rgba(76,201,240,.55); }
+  body[data-gm="party"]{ --m1:#ffc14a; --m2:#ff7ea8; --m-soft:rgba(255,180,120,.18); --m-glow:rgba(255,180,90,.5); }
+  body[data-gm="solo"],body[data-gm="daily"]{ --m1:#25e0c0; --m2:#4cc9f0; --m-soft:rgba(37,224,192,.18); --m-glow:rgba(37,224,192,.5); }
+
+  /* mode-tinted controls */
+  .btn:not(.alt):not(.ghost){ background:linear-gradient(135deg,var(--m1),var(--m2)); box-shadow:0 12px 26px color-mix(in srgb, var(--m1) 45%, transparent); }
+  .seg button.active{ background:linear-gradient(135deg,var(--m1),var(--m2))!important; box-shadow:0 8px 18px color-mix(in srgb, var(--m1) 40%, transparent); }
+  #setup .panel, #online .panel, #lobby .panel, #game{ position:relative; }
+  #setup .panel::before, #online .panel::before, #lobby .panel::before, #game::before{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:radial-gradient(120% 60% at 50% -10%, var(--m-soft), transparent 70%); z-index:0; }
+  #setup .panel > *, #online .panel > *, #lobby .panel > *, #game > *{ position:relative; z-index:1; }
+
+  /* in-game accents by mode */
+  .scell.on{ border-color:var(--m1)!important; box-shadow:0 0 26px var(--m-soft), inset 0 0 0 1px color-mix(in srgb,var(--m1) 50%, transparent)!important; }
+  .wtiles b{ color:#241c4d; }
+  body[data-gm] .wtiles b{ color:color-mix(in srgb, var(--m1) 78%, #241c4d); }
+  .midp b{ color:var(--m1); }
+  #modeLabel{ display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:14px; font-size:13px; font-weight:800;
+    background:linear-gradient(135deg, color-mix(in srgb,var(--m1) 30%, transparent), color-mix(in srgb,var(--m2) 22%, transparent));
+    border:1px solid color-mix(in srgb,var(--m1) 45%, transparent); }
+  #modeLabel .ic-svg{ width:16px; height:16px; color:var(--m1); }
+  .turnpill .tpi{ display:inline-flex; vertical-align:-4px; margin-right:5px; color:var(--m1); } .turnpill .tpi .ic-svg{ width:18px; height:18px; }
+
+  /* difficulty selector: vertical icon+label, uniform signal bars */
+  .segv button{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 4px; }
+  .sig{ display:inline-flex; } .sig .ic-svg{ width:24px; height:20px; }
+  #lenSeg button, #olenSeg button{ font-size:16px; font-weight:900; }
 </style>
 </head>
 <body>
@@ -387,8 +420,8 @@
       </div>
       <div id="aiWrap" style="display:none;">
         <label>AI opponent</label>
-        <div class="seg" id="aiSeg">
-          <button data-ai="easy">😌 Easy</button><button data-ai="medium" class="active">🙂 Medium</button><button data-ai="hard">😤 Hard</button><button data-ai="expert">🤖 Expert</button>
+        <div class="seg segv" id="aiSeg">
+          <button data-ai="easy"><span class="sig" data-sig="1"></span>Easy</button><button data-ai="medium" class="active"><span class="sig" data-sig="2"></span>Medium</button><button data-ai="hard"><span class="sig" data-sig="3"></span>Hard</button><button data-ai="expert"><span class="sig" data-sig="4"></span>Expert</button>
         </div>
       </div>
       <label>Word length</label>
@@ -597,6 +630,8 @@
     lock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 018 0v3"/>'
   };
   function IC(n,cls){ var p=ICONS[n]||''; return '<svg class="ic-svg'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; }
+  /* uniform difficulty icon: 4 signal bars, first n active */
+  function SIG(n){ var b=''; for(var i=0;i<4;i++){ var h=5+i*3.6, y=20-h, on=i<n; b+='<rect x="'+(3.5+i*5)+'" y="'+y+'" width="3.2" height="'+h+'" rx="1.4" fill="'+(on?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.5" opacity="'+(on?1:.32)+'"/>'; } return '<svg class="ic-svg" viewBox="0 0 24 24" aria-hidden="true">'+b+'</svg>'; }
   var DIFF={ chill:{start:12,step:.3}, normal:{start:10,step:.5}, blitz:{start:8,step:.75}, insane:{start:7,step:1} };
   var MIN_LIMIT=5;
   var AVATARS=['😀','😎','🦊','🐼','🐯','🦁','🐸','🐶','🐵','🦄','🐲','👾','🤖','👑','🍀','⭐','🔥','🌈'];
@@ -749,7 +784,9 @@
   var NAV_SCREENS={home:1,board:1,shop:1,profile:1,settings:1};
   function go(id){ document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.id===id);});
     if(stack[stack.length-1]!==id) stack.push(id); scrollTo(0,0); $('nav').style.display=NAV_SCREENS[id]?'flex':'none'; syncNav(id); }
-  function home(){ stopTimer(); if(typeof onlineCleanup==='function') onlineCleanup(); stack=['home']; go('home'); refreshHome(); }
+  function home(){ stopTimer(); if(typeof onlineCleanup==='function') onlineCleanup(); document.body.removeAttribute('data-gm'); stack=['home']; go('home'); refreshHome(); }
+  function modeMeta(m){ return ({ai:['bot','Solo vs AI'], duel:['users','Pass & Play'], online:['globe','Online'], solo:['zap','Endless'], daily:['calendar','Daily'], party:['users','Party']})[m]||['gamepad','Play']; }
+  function setModeUI(m){ document.body.dataset.gm=m; var mm=modeMeta(m); if($('modeLabel')) $('modeLabel').innerHTML=IC(mm[0])+'<span>'+mm[1]+'</span>'; }
   document.querySelectorAll('[data-home]').forEach(function(b){ b.addEventListener('click',home); });
 
   var NAV=[['home','home','Home'],['board','trophy','Ranks'],['shop','bag','Shop'],['profile','user','Profile'],['settings','settings','More']];
@@ -802,12 +839,12 @@
   document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); var mode=m.dataset.mode;
     if(mode==='online'){ if(!serverUrl()){ modal('<div class="em">🌐</div><h3>Online is almost ready</h3><p>The game server isn\'t connected yet. Once it\'s deployed to Render and its URL is in <b>config.js</b>, this unlocks real-time friend matches. For now, try <b>Solo vs AI</b> or <b>Pass &amp; Play</b>.</p><button class="btn" data-close>Got it</button>'); return; } Sound.resume(); openOnline(); return; }
     sel.mode=mode; openSetup(); }); });
-  function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none'; $('aiWrap').style.display='none';
-    if(sel.mode==='ai'){ t.textContent='🤖 Solo vs AI'; s.textContent='Play the computer. Pick your challenge.'; $('aiWrap').style.display=''; }
-    else if(sel.mode==='duel'){ t.textContent='🤝 Pass & Play'; s.textContent='Two players, one screen. Last one standing wins.'; $('duelFields').style.display=''; $('matchWrap').style.display=''; $('nameA').value=P.name||'You'; }
-    else if(sel.mode==='solo'){ t.textContent='⚡ Endless Solo'; s.textContent='Build the longest chain before the clock beats you.'; }
-    else if(sel.mode==='daily'){ t.textContent='📅 Daily Challenge'; s.textContent = (P.dailyDoneDay===today())?"You've played today's word — come back tomorrow!":'Everyone gets the same word today.'; }
-    else if(sel.mode==='party'){ t.textContent='🎉 Party Mode'; s.textContent='Pass the phone. Miss a word and you\'re out. Last standing wins.'; $('partyFields').style.display=''; }
+  function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); document.body.dataset.gm=sel.mode; $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none'; $('aiWrap').style.display='none';
+    if(sel.mode==='ai'){ t.textContent='Solo vs AI'; s.textContent='Play the computer. Pick your challenge.'; $('aiWrap').style.display=''; }
+    else if(sel.mode==='duel'){ t.textContent='Pass & Play'; s.textContent='Two players, one screen. Last one standing wins.'; $('duelFields').style.display=''; $('matchWrap').style.display=''; $('nameA').value=P.name||'You'; }
+    else if(sel.mode==='solo'){ t.textContent='Endless Solo'; s.textContent='Build the longest chain before the clock beats you.'; }
+    else if(sel.mode==='daily'){ t.textContent='Daily Challenge'; s.textContent = (P.dailyDoneDay===today())?"You've played today's word — come back tomorrow!":'Everyone gets the same word today.'; }
+    else if(sel.mode==='party'){ t.textContent='Party Mode'; s.textContent='Pass the phone. Miss a word and you\'re out. Last standing wins.'; $('partyFields').style.display=''; }
     go('setup');
   }
   $('playBtn').addEventListener('click',startGame);
@@ -831,11 +868,11 @@
   function startGame(){ Sound.resume();
     if(sel.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Already played today — see you tomorrow!'); return; }
     var diff=DIFF[sel.diff];
-    if(sel.mode==='ai'){ var st=randWord(sel.len); G={ mode:'ai', level:sel.ai, names:[(P.name||'You'),'AI · '+cap(sel.ai)], turn:0, aiSide:1, len:sel.len, diff:diff, current:st, used:[st], limit:diff.start, remaining:diff.start, chain:0, aiTimer:null }; $('modeLabel').textContent='Solo vs AI'; go('game'); renderGame(); startTimer(); $('answer').focus(); }
-    else if(sel.mode==='duel'){ G={ mode:'duel', names:[($('nameA').value.trim()||'You'),($('nameB').value.trim()||'Rival')], scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 }; $('modeLabel').textContent='Duel'; nextRound(); }
-    else if(sel.mode==='party'){ var names=[]; for(var i=0;i<sel.pc;i++)names.push('Player '+(i+1)); G={ mode:'party', names:names, alive:names.map(function(){return true;}), turn:0, len:sel.len, diff:diff, current:randWord(sel.len), used:[], limit:diff.start, remaining:diff.start, chain:0 }; G.used.push(G.current); $('modeLabel').textContent='Party'; go('game'); renderGame(); startTimer(); $('answer').focus(); }
+    if(sel.mode==='ai'){ var st=randWord(sel.len); G={ mode:'ai', level:sel.ai, names:[(P.name||'You'),'AI · '+cap(sel.ai)], turn:0, aiSide:1, len:sel.len, diff:diff, current:st, used:[st], limit:diff.start, remaining:diff.start, chain:0, aiTimer:null }; setModeUI('ai'); go('game'); renderGame(); startTimer(); $('answer').focus(); }
+    else if(sel.mode==='duel'){ G={ mode:'duel', names:[($('nameA').value.trim()||'You'),($('nameB').value.trim()||'Rival')], scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 }; setModeUI('duel'); nextRound(); }
+    else if(sel.mode==='party'){ var names=[]; for(var i=0;i<sel.pc;i++)names.push('Player '+(i+1)); G={ mode:'party', names:names, alive:names.map(function(){return true;}), turn:0, len:sel.len, diff:diff, current:randWord(sel.len), used:[], limit:diff.start, remaining:diff.start, chain:0 }; G.used.push(G.current); setModeUI('party'); go('game'); renderGame(); startTimer(); $('answer').focus(); }
     else { var len=sel.mode==='daily'?4:sel.len; var start=sel.mode==='daily'?dailyWord():randWord(len);
-      G={ mode:sel.mode, len:len, diff:diff, current:start, used:[start], limit:diff.start, remaining:diff.start, score:0, chain:0, combo:0 }; $('modeLabel').textContent=sel.mode==='daily'?'Daily':'Solo'; go('game'); renderGame(); startTimer(); $('answer').focus(); }
+      G={ mode:sel.mode, len:len, diff:diff, current:start, used:[start], limit:diff.start, remaining:diff.start, score:0, chain:0, combo:0 }; setModeUI(sel.mode); go('game'); renderGame(); startTimer(); $('answer').focus(); }
     renderPowerbar();
   }
   function nextRound(){ G.roundNum++; var st=(G.firstPlayer+G.roundNum-1)%2; G.turn=st; G.current=randWord(G.len); G.used=[G.current]; G.limit=G.diff.start; G.remaining=G.diff.start; G.combo=0; G.chain=0; go('game'); renderGame(); startTimer(); $('answer').focus(); }
@@ -845,12 +882,12 @@
     if(G.mode==='ai'){ sb.style.display='flex'; sb.innerHTML='<div class="scell '+(G.turn===0?'on':'')+'"><div class="nm">'+esc(G.names[0])+'</div><div class="sc" style="font-size:18px">'+(G.turn===0?'YOU':'—')+'</div></div>'
         +'<div class="midp"><span>CHAIN</span><b>'+G.chain+'</b><span>vs AI</span></div>'
         +'<div class="scell '+(G.turn===1?'on':'')+'"><div class="nm">'+esc(G.names[1])+'</div><div class="sc" style="font-size:18px">'+(G.turn===1?'🤔':'—')+'</div></div>';
-      $('turnPill').innerHTML = aiTurn ? '🤖 <b>'+esc(G.names[1])+'</b> is thinking…' : '✍️ Your turn'; }
+      $('turnPill').innerHTML = aiTurn ? '<span class="tpi">'+IC('bot')+'</span><b>'+esc(G.names[1])+'</b> is thinking…' : '<span class="tpi">'+IC('edit')+'</span>Your turn'; }
     else if(G.mode==='duel'){ sb.style.display='flex'; sb.innerHTML='<div class="scell '+(G.turn===0?'on':'')+'"><div class="nm">'+esc(G.names[0])+'</div><div class="sc">'+G.scores[0]+'</div></div>'
         +'<div class="midp"><span>ROUND</span><b>'+G.roundNum+'</b><span>'+(G.target===1?'single':'to '+G.target)+'</span></div>'
         +'<div class="scell '+(G.turn===1?'on':'')+'"><div class="nm">'+esc(G.names[1])+'</div><div class="sc">'+G.scores[1]+'</div></div>';
       $('turnPill').textContent=G.names[G.turn]+"'s turn"; }
-    else if(G.mode==='party'){ sb.style.display='flex'; var live=G.names.filter(function(n,i){return G.alive[i];}).length; sb.innerHTML='<div class="scell on" style="flex:1"><div class="nm">'+live+' players still in</div><div class="sc" style="font-size:18px">'+esc(G.names[G.turn])+'\'s turn</div></div>'; $('turnPill').textContent='🎉 '+G.names[G.turn]+', go!'; }
+    else if(G.mode==='party'){ sb.style.display='flex'; var live=G.names.filter(function(n,i){return G.alive[i];}).length; sb.innerHTML='<div class="scell on" style="flex:1"><div class="nm">'+live+' players still in</div><div class="sc" style="font-size:18px">'+esc(G.names[G.turn])+'\'s turn</div></div>'; $('turnPill').textContent=G.names[G.turn]+', go!'; }
     else { sb.style.display='none'; $('turnPill').innerHTML=(G.mode==='daily'?'📅 ':'⚡ ')+'Score <b>'+G.score+'</b> · Chain '+G.chain; }
     renderTiles(); $('answer').value=''; $('msg').textContent=''; renderChips(); renderCombo();
   }
@@ -1037,7 +1074,7 @@
     socket.on('connect', function(){ if(O&&O.code){ socket.emit('join',{code:O.code,userId:myUidGet(),name:P.name||'You',avatar:P.avatar}); } });
     socket.on('lobby', function(r){ O=O||{}; O.code=r.code; O.hostUserId=r.hostUserId; O.players=r.players; O.len=r.len; if($('lobby').classList.contains('active')) renderLobby(r); });
     socket.on('state', function(r){ if(!O)O={}; var prev=O.word; O.code=r.code; O.word=r.word; O.used=r.used; O.turnUserId=r.turnUserId; O.deadline=r.deadline; O.limit=r.limit; O.players=r.players; O.hostUserId=r.hostUserId; O.len=r.len;
-      if(r.state==='playing'){ if(!ONLINE){ ONLINE=true; stopTimer(); $('modeLabel').textContent='Online'; $('reactbar').style.display='flex'; go('game'); } renderOnlineGame(prev); startODisplay(); } });
+      if(r.state==='playing'){ if(!ONLINE){ ONLINE=true; stopTimer(); setModeUI('online'); $('reactbar').style.display='flex'; go('game'); } renderOnlineGame(prev); startODisplay(); } });
     socket.on('moved', function(r){ if(r.byUserId!==myUidGet()){ Sound.ok(); haptic(30); var wc=$('wtiles'); wc.classList.remove('oppflash'); void wc.offsetWidth; wc.classList.add('oppflash'); } });
     socket.on('opp_status', function(r){ if(r.userId===myUidGet())return; O._oppStatus = r.disconnected?'⚠️ disconnected':(r.typing?'is typing…':''); if(ONLINE) renderOnlineTurnpill(); });
     socket.on('reaction', function(r){ floatReaction(r.emoji); });
@@ -1045,7 +1082,7 @@
     socket.on('gameover', function(r){ onlineGameOver(r); });
   }
 
-  function openOnline(){ $('onlineMsg').textContent=''; $('joinCode').value=''; go('online'); }
+  function openOnline(){ document.body.dataset.gm='online'; $('onlineMsg').textContent=''; $('joinCode').value=''; go('online'); }
   function createRoom(){ $('onlineMsg').textContent=''; $('createRoomBtn').textContent='Connecting…'; ensureSocket(function(err){ $('createRoomBtn').textContent='➕ Create a Room'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
     socket.emit('create',{userId:myUidGet(),name:P.name||'You',avatar:P.avatar,len:sel.olen,diff:sel.odiff}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:true,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent='Could not create room. Try again.'; }); }); }
   function joinRoomCode(code){ code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); if(code.length<4){ $('onlineMsg').textContent='Enter the room code.'; return; } $('onlineMsg').textContent=''; $('joinRoomBtn').textContent='…'; ensureSocket(function(err){ $('joinRoomBtn').textContent='Join'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
@@ -1069,7 +1106,7 @@
     renderTiles(true, (prev&&prev!==O.word)?prev:null);
     $('chips').innerHTML=(O.used||[]).slice(-14).map(function(w){return '<span>'+w+'</span>';}).join('');
     var dis=!myTurn; $('answer').disabled=dis; $('goBtn').disabled=dis; $('answer').value=''; $('msg').textContent=''; if(!dis){ setTimeout(function(){ try{$('answer').focus();}catch(e){} },40); } }
-  function renderOnlineTurnpill(){ var me=myUidGet(); var myTurn=(O.turnUserId===me); var opp=(O.players||[]).filter(function(p){return p.userId!==me;})[0]||{name:'Opponent'}; $('turnPill').innerHTML = myTurn ? '✍️ Your turn' : ('⏳ '+esc(opp.name)+' '+(O._oppStatus||'is thinking…')); }
+  function renderOnlineTurnpill(){ var me=myUidGet(); var myTurn=(O.turnUserId===me); var opp=(O.players||[]).filter(function(p){return p.userId!==me;})[0]||{name:'Opponent'}; $('turnPill').innerHTML = myTurn ? '<span class="tpi">'+IC('edit')+'</span>Your turn' : ('<span class="tpi">'+IC('timer')+'</span>'+esc(opp.name)+' '+(O._oppStatus||'is thinking…')); }
 
   function startODisplay(){ stopODisplay(); oTimer=setInterval(function(){ if(!O||!O.deadline)return; var lim=O.limit||10; var rem=Math.max(0,(O.deadline-Date.now())/1000);
     $('tnum').textContent=Math.ceil(rem); var frac=Math.max(0,rem/lim); $('ringProg').style.strokeDashoffset=CIRC*(1-frac);
@@ -1112,6 +1149,7 @@
 
   // inject all static-markup icons
   document.querySelectorAll('[data-ic]').forEach(function(el){ el.innerHTML=IC(el.getAttribute('data-ic')); });
+  document.querySelectorAll('[data-sig]').forEach(function(el){ el.innerHTML=SIG(+el.getAttribute('data-sig')); });
   applyTheme(P.theme); renderHUD(); updateAccountUI(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute');
   if(!P.name){ openOnboard(false); } else { go('home'); refreshHome(); dailyRewardCheck(); }
   // invite-link auto-join: ?room=CODE

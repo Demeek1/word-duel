@@ -1,7 +1,7 @@
 /* WordSwap service worker.
  * Network-first for the page + config (so updates show immediately when online),
  * cache-first for the rest of the app shell (fast + offline). */
-var CACHE = 'wordswap-v7';
+var CACHE = 'wordswap-v8';
 var ASSETS = ['./', './index.html', './words.js', './config.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', function (e) {
