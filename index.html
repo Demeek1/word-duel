@@ -567,6 +567,7 @@
       <h2>Settings</h2>
       <div class="sub">Everything saves on this device.</div>
       <div id="accountRow" style="padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.1);"></div>
+      <div class="rows"><div><span class="ico" data-ic="bell"></span> Notifications</div><div class="switch" id="swNotif"><div class="k"></div></div></div>
       <div class="rows"><div>Sound effects</div><div class="switch" id="swSound"><div class="k"></div></div></div>
       <div class="rows"><div>Haptics (vibration)</div><div class="switch" id="swHaptic"><div class="k"></div></div></div>
       <div class="rows"><div>Change name / avatar</div><button class="iconbtn" id="editProfBtn" style="width:auto; padding:0 12px;">Edit</button></div>
@@ -627,7 +628,8 @@
     edit:'<path d="M4 20h4L18.5 9.5a2 2 0 00-2.8-2.8L5 17z"/><path d="M13.5 6.5l4 4"/>',
     plus:'<path d="M12 5v14"/><path d="M5 12h14"/>',
     check:'<path d="M5 12.5l4.2 4.2L19 6.5"/>',
-    lock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 018 0v3"/>'
+    lock:'<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 018 0v3"/>',
+    bell:'<path d="M6.5 9a5.5 5.5 0 0111 0c0 4.5 2 5.5 2 5.5H4.5s2-1 2-5.5z"/><path d="M10 20a2 2 0 004 0"/>'
   };
   function IC(n,cls){ var p=ICONS[n]||''; return '<svg class="ic-svg'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; }
   /* uniform difficulty icon: 4 signal bars, first n active */
@@ -647,7 +649,7 @@
     jungle:{ name:'Jungle', cost:250, a:'#0b3d20', b:'#1b5e3a', c:'#57cc99', p1:'#38b000', p2:'#2d9e5a', acc:'#c7f9cc', gold:'#ffd166', part:'#c7f9cc' }
   };
 
-  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true,
+  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false,
     xp:0, level:1, coins:60, streak:0, lastDay:null, dailyDoneDay:null,
     themesOwned:['aurora','midnight'], powers:{ hint:2, time:2, radar:2, shield:1 },
     stats:{ games:0, words:0, wins:0, bestSolo:0, bestChain:0, dailyBest:0, fastest:99, noTimeout:0 },
@@ -1033,8 +1035,30 @@
     var L=P.lead.slice(0,5); $('pfLead').innerHTML=L.length?L.map(function(r,i){return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>';}).join(''):'<div class="sub">Play Solo to set a score!</div>'; }
 
   /* ---- settings ---- */
-  function renderSettings(){ $('swSound').classList.toggle('on',P.sound); $('swHaptic').classList.toggle('on',P.haptic); updateAccountUI(); }
+  function renderSettings(){ $('swSound').classList.toggle('on',P.sound); $('swHaptic').classList.toggle('on',P.haptic); var granted=('Notification' in window)&&Notification.permission==='granted'; $('swNotif').classList.toggle('on',!!P.notif && granted); updateAccountUI(); }
   $('swSound').addEventListener('click',function(){ P.sound=!P.sound; renderSettings(); save(); if(P.sound)Sound.resume(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute'); });
+
+  /* ---- push notifications (Web Push, free) ---- */
+  function vapidKey(){ return (window.WORDSWAP_CONFIG&&window.WORDSWAP_CONFIG.VAPID_PUBLIC_KEY)||''; }
+  function urlB64ToU8(s){ var pad='='.repeat((4-s.length%4)%4); var b=(s+pad).replace(/-/g,'+').replace(/_/g,'/'); var raw=atob(b); var a=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i); return a; }
+  function notifSupported(){ return ('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window); }
+  function enableNotifications(){
+    if(!notifSupported()){ toast(IC('bell'),'Not supported here. On iPhone, add WordSwap to your Home Screen first.'); $('swNotif').classList.remove('on'); return; }
+    if(!vapidKey()||!serverUrl()){ toast(IC('bell'),'Notification server not set up yet.'); $('swNotif').classList.remove('on'); return; }
+    Notification.requestPermission().then(function(perm){
+      if(perm!=='granted'){ toast(IC('bell'),'Notifications blocked. Enable them in your browser settings.'); $('swNotif').classList.remove('on'); return; }
+      navigator.serviceWorker.ready.then(function(reg){
+        return reg.pushManager.getSubscription().then(function(sub){ return sub || reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToU8(vapidKey()) }); });
+      }).then(function(sub){
+        P.notif=true; save(); $('swNotif').classList.add('on');
+        var payload=JSON.stringify({ userId:myUidGet(), subscription:sub });
+        fetch(serverUrl()+'/push/subscribe',{ method:'POST', headers:{'Content-Type':'application/json'}, body:payload }).catch(function(){});
+        fetch(serverUrl()+'/push/test',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ subscription:sub, title:'WordSwap 🔔', body:"You're all set — you'll get pinged when it's your turn.", url:location.origin+location.pathname }) })
+          .then(function(r){ return r.json(); }).then(function(j){ if(j&&j.ok) toast(IC('check'),'Enabled! Check for a test notification.'); else toast(IC('bell'),'Enabled. (Test ping failed — server may be waking up.)'); }, function(){ toast(IC('bell'),'Enabled. (Server waking — try again in ~30s.)'); });
+      }).catch(function(e){ toast(IC('bell'),'Could not enable notifications.'); $('swNotif').classList.remove('on'); });
+    });
+  }
+  $('swNotif').addEventListener('click',function(){ if($('swNotif').classList.contains('on')){ P.notif=false; save(); $('swNotif').classList.remove('on'); toast(IC('bell'),'Notifications off (still allowed in browser).'); } else { enableNotifications(); } });
   $('swHaptic').addEventListener('click',function(){ P.haptic=!P.haptic; renderSettings(); save(); if(P.haptic)haptic(20); });
   $('sndG').addEventListener('click',function(){ P.sound=!P.sound; save(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute'); renderSettings(); });
   $('editProfBtn').addEventListener('click',function(){ openOnboard(true); });

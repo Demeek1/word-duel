@@ -1,7 +1,7 @@
 /* WordSwap service worker.
  * Network-first for the page + config (so updates show immediately when online),
  * cache-first for the rest of the app shell (fast + offline). */
-var CACHE = 'wordswap-v9';
+var CACHE = 'wordswap-v10';
 var ASSETS = ['./', './index.html', './words.js', './config.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', function (e) {
@@ -43,4 +43,22 @@ self.addEventListener('fetch', function (e) {
       }).catch(function () { return caches.match('./index.html'); });
     })
   );
+});
+
+// ---------- Push notifications ----------
+self.addEventListener('push', function (e) {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: e.data && e.data.text() }; }
+  var title = data.title || 'WordSwap';
+  var opts = { body: data.body || '', icon: './icon.svg', badge: './icon.svg', vibrate: [40, 30, 40], data: { url: data.url || './' } };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  var url = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) { if ('focus' in list[i]) return list[i].focus(); }
+    if (clients.openWindow) return clients.openWindow(url);
+  }));
 });
