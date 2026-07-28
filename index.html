@@ -970,27 +970,34 @@
       showResult({ em:'🏆', title:G.names[winnerIdx]+' wins the match!', body:reason, stats:[['Final',G.scores[0]+' – '+G.scores[1]],['Words',G.chain]], reward:[['🪙','+5'],['⭐','+18']], mode:'duel' }); confetti(); Sound.big(); haptic([30,50,30]); }
     else { toast('🎉',G.names[winnerIdx]+' takes the round!'); showResult({ em:'⏱️', title:G.names[winnerIdx]+' wins the round', body:reason, stats:[['Score',G.scores[0]+' – '+G.scores[1]],['Round',G.roundNum]], reward:[], mode:'duel-continue' }); Sound.big(); }
   }
-  function endSolo(){ stopTimer(); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain); var best=false;
-    if(G.mode==='daily'){ if(G.score>P.stats.dailyBest)P.stats.dailyBest=G.score; P.dailyDoneDay=today(); bumpStreak(); submitDaily(G.score); }
+  function dayNum(){ return Math.floor((Date.now()-Date.UTC(2024,0,1))/86400000); }
+  function gridSquares(n){ n=Math.max(1,Math.min(n,40)); var s=''; for(var i=0;i<n;i++)s+='🟪'; return s; }
+  function dailyShareText(chain,score){ var n=Math.min(chain,30),g='',i; for(i=0;i<n;i++){ g+='🟪'; if((i+1)%10===0&&i+1<n)g+='\n'; }
+    return 'WordSwap Daily #'+dayNum()+'\n'+g+'\n'+chain+'-word chain · '+score+' pts\nCan you beat it? '+location.origin+location.pathname; }
+  function endSolo(){ stopTimer(); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain); var best=false; var isDaily=(G.mode==='daily');
+    if(isDaily){ if(G.score>P.stats.dailyBest)P.stats.dailyBest=G.score; P.dailyDoneDay=today(); bumpStreak(); submitDaily(G.score); }
     if(G.score>P.stats.bestSolo){ P.stats.bestSolo=G.score; best=true; }
     P.lead.push({name:P.name||'You',score:G.score,d:today()}); P.lead.sort(function(a,b){return b.score-a.score;}); P.lead=P.lead.slice(0,10);
     var coins=Math.max(1,Math.round(G.score/40)); addXP(8); addCoins(coins); if(G.chain>=25)unlock('chain25'); save();
-    showResult({ em:best?'🥇':'⚡', title:best?'New personal best!':(G.mode==='daily'?'Daily complete!':'Chain over!'), body:'You chained '+G.chain+' words.', stats:[['Score',G.score],['Chain',G.chain],['Best',Math.max(P.stats.bestSolo,G.score)],['Streak','🔥 '+P.streak]], reward:[['🪙','+'+coins],['⭐','+8']], mode:G.mode });
+    var bodyHtml = isDaily ? ('<div style="font-size:20px;line-height:1.35;word-break:break-word">'+gridSquares(G.chain)+'</div><div style="margin-top:6px;color:var(--muted)">Daily #'+dayNum()+' · spoiler-free to share</div>') : null;
+    showResult({ em:best?'🥇':'⚡', title:best?'New personal best!':(isDaily?'Daily complete!':'Chain over!'), body:isDaily?null:('You chained '+G.chain+' words.'), bodyHtml:bodyHtml, share:isDaily?dailyShareText(G.chain,G.score):null,
+      stats:[['Score',G.score],['Chain',G.chain],['Best',Math.max(P.stats.bestSolo,G.score)],['Streak',P.streak]], reward:[['🪙','+'+coins],['⭐','+8']], mode:G.mode });
     if(best){ confetti(); Sound.big(); haptic([30,50,30]); } else Sound.up(); }
 
   function bumpStreak(){ var t=today(); if(P.lastDay===t)return; P.streak=(P.lastDay===yesterday())?P.streak+1:1; P.lastDay=t; renderHUD();
     if(P.streak>=3)unlock('streak3'); if(P.streak>=7)unlock('streak7'); toast('🔥','Day '+P.streak+' streak!'); }
 
   var resCtx=null;
-  function showResult(r){ resCtx=r; $('resEm').textContent=r.em; $('resTitle').textContent=r.title; $('resBody').textContent=r.body||'';
+  function showResult(r){ resCtx=r; $('resEm').textContent=r.em; $('resTitle').textContent=r.title; if(r.bodyHtml){ $('resBody').innerHTML=r.bodyHtml; } else { $('resBody').textContent=r.body||''; }
+    $('shareBtn').innerHTML = r.share ? (IC('share')+' Share result') : (IC('share')+' Share');
     $('resStats').innerHTML=(r.stats||[]).map(function(s){return '<div class="stat"><div class="v">'+s[1]+'</div><div class="k">'+s[0]+'</div></div>';}).join('');
     $('resReward').innerHTML=(r.reward||[]).map(function(x){return '<div class="r">'+x[0]+' '+x[1]+'</div>';}).join('');
     $('againBtn').textContent=r.mode==='duel-continue'?'Next round ▶':'Play again ▶'; go('result'); }
   $('againBtn').addEventListener('click',function(){ if(!resCtx)return;
     if(resCtx.mode==='online'){ if(socket){ socket.emit('rematch'); toast('🔁','Rematch requested…'); } return; }
     if(resCtx.mode==='duel-continue'){ nextRound(); } else if(resCtx.mode==='duel'){ G.scores=[0,0]; G.roundNum=0; G.firstPlayer=(G.firstPlayer+1)%2; nextRound(); } else if(resCtx.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Come back tomorrow for a new word!'); home(); } else { startGame(); } });
-  $('shareBtn').addEventListener('click',function(){ var txt='🔤 WordSwap — '+$('resTitle').textContent+' '+((resCtx&&resCtx.stats)||[]).map(function(s){return s[0]+': '+s[1];}).join(', ')+' — play at '+location.href;
-    if(navigator.share){ navigator.share({title:'WordSwap',text:txt,url:location.href}).catch(function(){}); } else { try{ navigator.clipboard.writeText(txt); toast('📋','Copied — paste anywhere!'); }catch(e){ toast('📤','Share not supported'); } } });
+  $('shareBtn').addEventListener('click',function(){ var txt=(resCtx&&resCtx.share) ? resCtx.share : ('WordSwap — '+$('resTitle').textContent+' — '+((resCtx&&resCtx.stats)||[]).map(function(s){return s[0]+': '+s[1];}).join(', ')+' — play at '+location.origin+location.pathname);
+    if(navigator.share){ navigator.share({title:'WordSwap',text:txt}).catch(function(){}); } else { try{ navigator.clipboard.writeText(txt); toast(IC('copy'),'Copied — paste anywhere!'); }catch(e){ toast(IC('share'),'Share not supported'); } } });
 
   /* ---- achievements ---- */
   var ACH=[ {id:'firstwin',ic:'🥇',t:'First Blood',d:'Win your first duel'},
