@@ -54,6 +54,31 @@ app.post('/push/test', async (req, res) => {
   }
 });
 
+// ---- admin broadcast: send a notification to ALL subscribed devices ----
+const ADMIN_KEY = process.env.ADMIN_KEY || '';
+async function broadcast(title, body, url) {
+  const ids = Object.keys(pushSubs);
+  let sent = 0, failed = 0;
+  for (const id of ids) {
+    try { await webpush.sendNotification(pushSubs[id], JSON.stringify({ title: title || 'WordSwap', body: body || '', url: url || '/' })); sent++; }
+    catch (e) { failed++; if (e && e.statusCode === 410) delete pushSubs[id]; }
+  }
+  return { total: ids.length, sent, failed };
+}
+async function handleBroadcast(req, res) {
+  if (!pushOn) return res.status(400).json({ ok: false, error: 'push_not_configured' });
+  const q = Object.assign({}, req.query, req.body || {});
+  if (!ADMIN_KEY || q.key !== ADMIN_KEY) return res.status(403).json({ ok: false, error: 'bad_key' });
+  const result = await broadcast(q.title, q.body, q.url);
+  res.json({ ok: true, ...result });
+}
+app.get('/push/broadcast', handleBroadcast);
+app.post('/push/broadcast', handleBroadcast);
+app.get('/push/count', (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ ok: false });
+  res.json({ ok: true, subscribers: Object.keys(pushSubs).length });
+});
+
 // helper other parts of the server can call to notify a user by id
 async function pushToUser(userId, payload) {
   if (!pushOn) return;
