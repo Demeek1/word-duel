@@ -29,22 +29,46 @@ const VAPID_PUBLIC = process.env.VAPID_PUBLIC || '';
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE || '';
 const pushOn = !!(VAPID_PUBLIC && VAPID_PRIVATE);
 if (pushOn) webpush.setVapidDetails('mailto:admin@wordswap.app', VAPID_PUBLIC, VAPID_PRIVATE);
-const pushSubs = {}; // userId -> subscription (in-memory for now; persisted in a later milestone)
+
+// Persistence: store subscriptions in Supabase when configured; else in-memory.
+const { createClient } = require('@supabase/supabase-js');
+const SB_URL = process.env.SUPABASE_URL || '';
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const sb = (SB_URL && SB_KEY) ? createClient(SB_URL, SB_KEY, { auth: { persistSession: false } }) : null;
+const pushSubs = {}; // in-memory cache / fallback
+
+async function saveSub(userId, subscription) {
+  pushSubs[userId] = subscription;
+  if (sb) { try { await sb.from('push_subscriptions').upsert({ user_id: userId, subscription, updated_at: new Date().toISOString() }); } catch (e) {} }
+}
+async function getSub(userId) {
+  if (pushSubs[userId]) return pushSubs[userId];
+  if (sb) { try { const r = await sb.from('push_subscriptions').select('subscription').eq('user_id', userId).maybeSingle(); if (r.data) { pushSubs[userId] = r.data.subscription; return r.data.subscription; } } catch (e) {} }
+  return null;
+}
+async function delSub(userId) {
+  delete pushSubs[userId];
+  if (sb) { try { await sb.from('push_subscriptions').delete().eq('user_id', userId); } catch (e) {} }
+}
+async function getAllSubs() {
+  if (sb) { try { const r = await sb.from('push_subscriptions').select('user_id, subscription').limit(10000); if (r.data) return r.data.map(x => ({ userId: x.user_id, sub: x.subscription })); } catch (e) {} }
+  return Object.keys(pushSubs).map(id => ({ userId: id, sub: pushSubs[id] }));
+}
 
 app.get('/', (_req, res) => res.json({ ok: true, service: 'wordswap-server', rooms: Object.keys(rooms).length, words: DICT.size, push: pushOn }));
 app.get('/health', (_req, res) => res.json({ ok: true }));
 app.get('/push/key', (_req, res) => res.json({ key: VAPID_PUBLIC }));
 
-app.post('/push/subscribe', (req, res) => {
+app.post('/push/subscribe', async (req, res) => {
   const { userId, subscription } = req.body || {};
-  if (userId && subscription) pushSubs[userId] = subscription;
+  if (userId && subscription) await saveSub(userId, subscription);
   res.json({ ok: true });
 });
 
 app.post('/push/test', async (req, res) => {
   if (!pushOn) return res.status(400).json({ ok: false, error: 'push_not_configured' });
   const { subscription, title, body, url } = req.body || {};
-  const sub = subscription || (req.body && req.body.userId && pushSubs[req.body.userId]);
+  const sub = subscription || (req.body && req.body.userId ? await getSub(req.body.userId) : null);
   if (!sub) return res.status(400).json({ ok: false, error: 'no_subscription' });
   try {
     await webpush.sendNotification(sub, JSON.stringify({ title: title || 'WordSwap', body: body || 'Notifications are on! 🎉', url: url || '/' }));
@@ -57,13 +81,13 @@ app.post('/push/test', async (req, res) => {
 // ---- admin broadcast: send a notification to ALL subscribed devices ----
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 async function broadcast(title, body, url) {
-  const ids = Object.keys(pushSubs);
+  const all = await getAllSubs();
   let sent = 0, failed = 0;
-  for (const id of ids) {
-    try { await webpush.sendNotification(pushSubs[id], JSON.stringify({ title: title || 'WordSwap', body: body || '', url: url || '/' })); sent++; }
-    catch (e) { failed++; if (e && e.statusCode === 410) delete pushSubs[id]; }
+  for (const { userId, sub } of all) {
+    try { await webpush.sendNotification(sub, JSON.stringify({ title: title || 'WordSwap', body: body || '', url: url || '/' })); sent++; }
+    catch (e) { failed++; if (e && e.statusCode === 410) await delSub(userId); }
   }
-  return { total: ids.length, sent, failed };
+  return { total: all.length, sent, failed };
 }
 async function handleBroadcast(req, res) {
   if (!pushOn) return res.status(400).json({ ok: false, error: 'push_not_configured' });
@@ -74,18 +98,19 @@ async function handleBroadcast(req, res) {
 }
 app.get('/push/broadcast', handleBroadcast);
 app.post('/push/broadcast', handleBroadcast);
-app.get('/push/count', (req, res) => {
+app.get('/push/count', async (req, res) => {
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ ok: false });
-  res.json({ ok: true, subscribers: Object.keys(pushSubs).length });
+  const all = await getAllSubs();
+  res.json({ ok: true, subscribers: all.length, storage: sb ? 'supabase' : 'memory' });
 });
 
 // helper other parts of the server can call to notify a user by id
 async function pushToUser(userId, payload) {
   if (!pushOn) return;
-  const sub = pushSubs[userId];
+  const sub = await getSub(userId);
   if (!sub) return;
   try { await webpush.sendNotification(sub, JSON.stringify(payload)); }
-  catch (e) { if (e && e.statusCode === 410) delete pushSubs[userId]; }
+  catch (e) { if (e && e.statusCode === 410) await delSub(userId); }
 }
 
 const server = http.createServer(app);
