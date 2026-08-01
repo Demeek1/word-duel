@@ -1,9 +1,9 @@
 /* WordSwap service worker.
  * Network-first for the page + config (so updates show immediately when online),
  * cache-first for the rest of the app shell (fast + offline). */
-var CACHE = 'wordswap-v11';
+var CACHE = 'wordswap-v12';
 var ASSETS = ['./', './index.html', './words.js', './config.js', './manifest.json',
-  './logo.webp', './icon-192.png', './icon-512.png', './icon-1024.png', './apple-touch-icon.png', './icon-maskable-512.png'];
+  './logo.webp', './icon192.png', './icon512.png', './icon1024.png', './appletouchicon.png', './iconmaskable512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
@@ -51,7 +51,7 @@ self.addEventListener('push', function (e) {
   var data = {};
   try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: e.data && e.data.text() }; }
   var title = data.title || 'WordSwap';
-  var opts = { body: data.body || '', icon: './icon-192.png', badge: './icon-192.png', vibrate: [40, 30, 40], data: { url: data.url || './' } };
+  var opts = { body: data.body || '', icon: './icon192.png', badge: './icon192.png', vibrate: [40, 30, 40], data: { url: data.url || './' } };
   e.waitUntil(self.registration.showNotification(title, opts));
 });
 
