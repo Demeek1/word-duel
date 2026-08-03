@@ -14,8 +14,8 @@ const DICT = new Set(WORDS);
 const BY_LEN = {};
 DICT.forEach((w) => { (BY_LEN[w.length] = BY_LEN[w.length] || []).push(w); });
 
-const DIFF = { chill:{start:12,step:.3}, normal:{start:10,step:.5}, blitz:{start:8,step:.75}, insane:{start:7,step:1} };
-const MIN_LIMIT = 5;
+const DIFF = { chill:{start:45,step:1}, normal:{start:45,step:1.5}, blitz:{start:45,step:2.5}, insane:{start:45,step:3.5} };
+const MIN_LIMIT = 17;
 const MAX_PLAYERS = 2;          // friend match = 1v1 for the MVP
 const GRACE_MS = 20000;         // reconnect grace before forfeit
 const ROOM_TTL_MS = 60 * 60 * 1000;
