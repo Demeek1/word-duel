@@ -251,7 +251,10 @@
   body.kb .app{ height:var(--vvh,100dvh); min-height:0; overflow:hidden; padding-top:8px; padding-bottom:6px; }
   body.kb #game .gtop{ margin-bottom:4px; }
   body.kb #game .gtop .iconbtn{ width:34px; height:34px; }
-  body.kb #game .powerbar{ display:none; }
+  body.kb #game .powerbar{ display:flex; gap:8px; margin:3px 0 2px; }
+  body.kb #game .powerbar .pw{ width:38px; height:38px; border-radius:12px; }
+  body.kb #game .powerbar .pw .ic-svg{ width:19px; height:19px; }
+  body.kb #game .powerbar .pw .cnt{ font-size:9px; padding:0 5px; top:-4px; right:-4px; }
   body.kb #game .chips{ display:none; }
   body.kb #game .combo{ display:none; }
   body.kb #game .scoreboard{ margin-bottom:4px; }
@@ -712,14 +715,26 @@
       best_solo:P.stats.bestSolo, best_chain:P.stats.bestChain, games:P.stats.games, wins:P.stats.wins, words:P.stats.words,
       updated_at:new Date().toISOString() }).then(function(){},function(){}); }catch(e){} }
 
+  // Cloud is the single source of truth. On sign-in: if a cloud profile exists,
+  // adopt its values (so data is identical everywhere, every visit). If it's a
+  // brand-new account, seed the cloud from whatever local progress exists.
   function pullMerge(){ if(!supa||!USER) return;
     supa.from('profiles').select('*').eq('id',USER.id).maybeSingle().then(function(res){ var r=res.data;
-      if(r){ P.level=Math.max(P.level,r.level||1); P.xp=Math.max(P.xp,r.xp||0); P.coins=Math.max(P.coins,r.coins||0); P.streak=Math.max(P.streak,r.streak||0);
-        P.stats.bestSolo=Math.max(P.stats.bestSolo,r.best_solo||0); P.stats.bestChain=Math.max(P.stats.bestChain,r.best_chain||0);
-        P.stats.games=Math.max(P.stats.games,r.games||0); P.stats.wins=Math.max(P.stats.wins,r.wins||0); P.stats.words=Math.max(P.stats.words,r.words||0);
-        if(r.username && (!P.name||P.name==='Player')) P.name=r.username; }
-      save(); renderHUD(); try{localStorage.setItem('wordswap2',JSON.stringify(P));}catch(e){} pushProfile();
-    },function(){});
+      if(r){
+        if(r.username) P.name=r.username;
+        if(r.avatar) P.avatar=r.avatar;
+        P.level=r.level||1; P.xp=r.xp||0;
+        if(r.coins!=null) P.coins=r.coins;
+        P.streak=r.streak||0;
+        P.stats.bestSolo=r.best_solo||0; P.stats.bestChain=r.best_chain||0;
+        P.stats.games=r.games||0; P.stats.wins=r.wins||0; P.stats.words=r.words||0;
+        try{localStorage.setItem('wordswap2',JSON.stringify(P));}catch(e){}
+        renderHUD(); if($('profile') && $('profile').classList.contains('active')) renderProfile();
+      } else {
+        pushProfile(); // new account -> seed cloud from local
+      }
+      updateAccountUI();
+    },function(){ updateAccountUI(); });
   }
 
   function submitDaily(score){ if(!supa||!USER) return; var day=new Date().toISOString().slice(0,10);
@@ -737,17 +752,34 @@
   }
 
   /* auth */
-  function afterAuth(){ updateAccountUI(); pullMerge(); toast('☁️','Signed in — progress is syncing'); if($('board').classList.contains('active')) loadBoard(curTab); }
+  function afterAuth(){ updateAccountUI(); pullMerge(); if(USER && !USER.is_anonymous) toast('☁️','Signed in — synced everywhere'); if($('board').classList.contains('active')) loadBoard(curTab); }
   if(supa){
-    supa.auth.getSession().then(function(res){ USER=(res.data&&res.data.session)?res.data.session.user:null; updateAccountUI(); if(USER) pullMerge(); });
+    supa.auth.getSession().then(function(res){ USER=(res.data&&res.data.session)?res.data.session.user:null;
+      if(USER){ updateAccountUI(); pullMerge(); }
+      else { // no session yet -> silently create a persistent device account
+        supa.auth.signInAnonymously().then(function(r){ if(r&&r.error){ updateAccountUI(); } },function(){ updateAccountUI(); });
+      }
+    });
     supa.auth.onAuthStateChange(function(_e,session){ var prev=USER&&USER.id; var u=session?session.user:null; USER=u; if(u&&u.id!==prev){ afterAuth(); } else { updateAccountUI(); } });
   }
   function authEmail(mode,email,pw){ return mode==='up'
       ? supa.auth.signUp({email:email,password:pw,options:{data:{username:P.name||'Player'}}})
       : supa.auth.signInWithPassword({email:email,password:pw}); }
-  function authGoogle(){ return supa.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.href.split('#')[0]}}); }
+  function authGoogle(){ var opts={provider:'google',options:{redirectTo:location.href.split('#')[0]}};
+    // If currently a silent/anonymous account, LINK Google to it so all progress is kept.
+    if(USER && USER.is_anonymous && supa.auth.linkIdentity){ return supa.auth.linkIdentity(opts); }
+    return supa.auth.signInWithOAuth(opts); }
   function authGuest(){ return supa.auth.signInAnonymously(); }
-  function signOut(){ if(!supa)return; supa.auth.signOut().then(function(){ USER=null; updateAccountUI(); toast('👋','Signed out'); }); }
+  function signOut(){ if(!supa)return;
+    if(USER && USER.is_anonymous){ toast('🔒','Connect Google first, or this device account will be lost'); return; }
+    supa.auth.signOut().then(function(){ USER=null; updateAccountUI(); toast('👋','Signed out'); }); }
+  function deleteAccount(){ if(!supa||!USER)return; var id=USER.id;
+    supa.from('daily_scores').delete().eq('user_id',id).then(function(){
+      supa.from('profiles').delete().eq('id',id).then(function(){
+        try{localStorage.removeItem('wordswap2');}catch(e){}
+        supa.auth.signOut().then(function(){ location.reload(); },function(){ location.reload(); });
+      },function(){ toast('⚠️','Could not delete — try again'); });
+    },function(){ supa.from('profiles').delete().eq('id',id).then(function(){ try{localStorage.removeItem('wordswap2');}catch(e){} supa.auth.signOut().then(function(){location.reload();},function(){location.reload();}); }); }); }
 
   function authModal(){
     if(!cloudOn()){ modal('<div class="em">🔌</div><h3>Cloud not connected</h3><p>Add your Supabase URL &amp; anon key in <b>config.js</b> to turn on accounts and global leaderboards. See the Phase 1 setup guide.</p><button class="btn" data-close>OK</button>'); return; }
@@ -767,10 +799,22 @@
     $('auGuest').addEventListener('click',function(){ handle(authGuest()); });
   }
 
+  function handleAuthPromise(pr){ if(!pr||!pr.then)return; pr.then(function(res){ if(res&&res.error){ toast('⚠️',res.error.message); } },function(err){ toast('⚠️',(err&&err.message)||'Something went wrong'); }); }
+  function confirmDelete(){ modal('<div class="em">🗑️</div><h3>Delete account?</h3><p>This erases your profile, coins, streak and stats from the cloud and this device. It can’t be undone.</p><button class="btn" id="delYes" style="background:var(--bad)">Delete everything</button><button class="btn ghost" data-close>Cancel</button>'); var y=$('delYes'); if(y)y.addEventListener('click',function(){ $('backdrop').classList.remove('show'); deleteAccount(); }); }
   function updateAccountUI(){ var el=$('accountRow'); if(!el) return;
     if(!cloudOn()){ el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center;"><div>☁️ Online account<br><span style="color:var(--muted); font-size:12px">Not set up — see setup guide</span></div></div>'; return; }
-    if(USER){ el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ '+(myEmail()||'Signed in')+'<br><span style="color:var(--good); font-size:12px">Synced to cloud</span></div><button class="iconbtn" id="btnSignOut" style="width:auto; padding:0 12px;">Sign out</button></div>'; var b=$('btnSignOut'); if(b)b.addEventListener('click',signOut); }
-    else { el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ Online account<br><span style="color:var(--muted); font-size:12px">Sign in to sync &amp; compete</span></div><button class="iconbtn" id="btnSignIn" style="width:auto; padding:0 12px;">Sign in</button></div>'; var s=$('btnSignIn'); if(s)s.addEventListener('click',authModal); }
+    if(USER && !USER.is_anonymous){
+      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ '+(myEmail()||'Signed in')+'<br><span style="color:var(--good); font-size:12px">Synced across your devices</span></div><button class="iconbtn" id="btnSignOut" style="width:auto; padding:0 12px;">Sign out</button></div><button class="btn ghost" id="btnDelete" style="margin-top:8px; color:var(--bad);">Delete account</button>';
+      var b=$('btnSignOut'); if(b)b.addEventListener('click',signOut);
+      var d=$('btnDelete'); if(d)d.addEventListener('click',confirmDelete);
+    } else if(USER){
+      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>👤 This phone’s account<br><span style="color:var(--good); font-size:12px">Signed in &amp; syncing</span></div><button class="iconbtn" id="btnConnect" style="width:auto; padding:0 12px;">Connect Google</button></div><div style="color:var(--muted); font-size:12px; margin-top:6px;">Connect Google to save your progress forever &amp; play on other phones.</div><button class="btn ghost" id="btnDelete" style="margin-top:8px; color:var(--bad);">Delete account</button>';
+      var c=$('btnConnect'); if(c)c.addEventListener('click',function(){ handleAuthPromise(authGoogle()); });
+      var d2=$('btnDelete'); if(d2)d2.addEventListener('click',confirmDelete);
+    } else {
+      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ Online account<br><span style="color:var(--muted); font-size:12px">Connecting…</span></div><button class="iconbtn" id="btnSignIn" style="width:auto; padding:0 12px;">Connect</button></div>';
+      var s=$('btnSignIn'); if(s)s.addEventListener('click',authModal);
+    }
   }
 
   /* leaderboard screen */
