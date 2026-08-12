@@ -10,10 +10,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="WordSwap" />
 <link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="appletouchicon.png?v=14" />
-<link rel="icon" type="image/png" sizes="192x192" href="icon192.png?v=14" />
-<link rel="icon" type="image/png" sizes="512x512" href="icon512.png?v=14" />
-<link rel="icon" href="icon192.png?v=14" />
+<link rel="apple-touch-icon" href="appletouchicon.png?v=15" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon192.png?v=15" />
+<link rel="icon" type="image/png" sizes="512x512" href="icon512.png?v=15" />
+<link rel="icon" href="icon192.png?v=15" />
+<!-- iOS launch / app-open screens (logo on white, per iPhone size) -->
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="startup750x1334.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1242x2208.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1125x2436.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1080x2340.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="startup828x1792.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1242x2688.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1170x2532.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1179x2556.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1284x2778.png?v=15" />
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="startup1290x2796.png?v=15" />
 <style>
   :root{
     /* theme vars (overwritten by JS) */
@@ -350,14 +361,15 @@
 
   /* ---------- Loading splash (uses the exact logo, animated) ---------- */
   #splash{ position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:26px; background:#ffffff;
+    align-items:center; justify-content:center; gap:26px;
+    background:linear-gradient(160deg,#A089FE 0%,#6748ED 100%);
     transition:opacity .45s ease, visibility .45s ease; }
   #splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
   #splash img{ width:44vw; max-width:200px; height:auto; display:block;
-    filter:drop-shadow(0 12px 30px rgba(80,60,180,.28));
+    filter:drop-shadow(0 18px 40px rgba(20,10,60,.35));
     animation:splashPop .6s cubic-bezier(.2,.9,.3,1.2) both, splashFloat 2.6s ease-in-out .6s infinite; }
   #splash .dots{ display:flex; gap:9px; }
-  #splash .dots i{ width:9px; height:9px; border-radius:50%; background:#6d5efc; opacity:.35;
+  #splash .dots i{ width:9px; height:9px; border-radius:50%; background:#ffffff; opacity:.55;
     animation:splashDot 1s ease-in-out infinite; }
   #splash .dots i:nth-child(2){ animation-delay:.15s; }
   #splash .dots i:nth-child(3){ animation-delay:.3s; }
@@ -368,7 +380,7 @@
 </style>
 </head>
 <body>
-<div id="splash"><img src="logo.webp?v=14" alt="WordSwap" width="512" height="512" /><div class="dots"><i></i><i></i><i></i></div></div>
+<div id="splash"><img src="logo.webp?v=15" alt="WordSwap" width="512" height="512" /><div class="dots"><i></i><i></i><i></i></div></div>
 <script>(function(){var t0=Date.now();function hide(){var s=document.getElementById('splash');if(!s||s.classList.contains('hide'))return;var wait=Math.max(0,550-(Date.now()-t0));setTimeout(function(){s.classList.add('hide');setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},500);},wait);}if(document.readyState==='complete')hide();else window.addEventListener('load',hide);setTimeout(hide,2600);})();</script>
 <div id="bg"></div>
 <canvas id="particles"></canvas>
@@ -656,8 +668,8 @@
   function IC(n,cls){ var p=ICONS[n]||''; return '<svg class="ic-svg'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; }
   /* uniform difficulty icon: 4 signal bars, first n active */
   function SIG(n){ var b=''; for(var i=0;i<4;i++){ var h=5+i*3.6, y=20-h, on=i<n; b+='<rect x="'+(3.5+i*5)+'" y="'+y+'" width="3.2" height="'+h+'" rx="1.4" fill="'+(on?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.5" opacity="'+(on?1:.32)+'"/>'; } return '<svg class="ic-svg" viewBox="0 0 24 24" aria-hidden="true">'+b+'</svg>'; }
-  var DIFF={ chill:{start:12,step:.3}, normal:{start:10,step:.5}, blitz:{start:8,step:.75}, insane:{start:7,step:1} };
-  var MIN_LIMIT=5;
+  var DIFF={ chill:{start:45,step:1}, normal:{start:45,step:1.5}, blitz:{start:45,step:2.5}, insane:{start:45,step:3.5} };
+  var MIN_LIMIT=17;
   var AVATARS=['😀','😎','🦊','🐼','🐯','🦁','🐸','🐶','🐵','🦄','🐲','👾','🤖','👑','🍀','⭐','🔥','🌈'];
 
   var THEMES={
