@@ -571,7 +571,7 @@
         <button class="btn alt" id="joinRoomBtn" style="margin:0; width:auto; padding:0 20px;">Join</button>
       </div>
       <div class="msg" id="onlineMsg" style="color:var(--bad);"></div>
-      <div class="sub" style="margin-top:10px;">First online match may take ~30s while the free server wakes up.</div>
+      <div class="sub" style="margin-top:10px;" id="wakeHint">First online match may take ~30s while the free server wakes up.</div>
     </div>
   </section>
 
@@ -1176,8 +1176,8 @@
   function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'Daily done — streak safe. Come back tomorrow.':'New Daily Challenge available';
     var oc=document.querySelector('.mode[data-mode="online"]');
     if(oc){ var go=oc.querySelector('.go'); if(go) go.innerHTML=IC('chevron');
-      if(serverUrl()){ oc.classList.remove('locked'); markOnlineCard();
-        if(ONLINE_HEALTH===null) probeOnline(function(){ markOnlineCard(); }); }
+      if(serverUrl()){ oc.classList.remove('locked'); applyOnlineStatus();
+        if(ONLINE_HEALTH===null) probeOnline(function(){ applyOnlineStatus(); }); }
       else { oc.classList.add('locked'); var tg2=oc.querySelector('.tag'); if(tg2){ tg2.textContent='SOON'; tg2.className='tag soon'; } } }
   }
 
@@ -1219,9 +1219,11 @@
         if(navigator.onLine===false){ settle('offline'); return; }
         settle((Date.now()-t0)<2500 ? 'down' : 'unreachable'); });
   }
-  /* The card must not advertise LIVE while the server is down. */
-  function markOnlineCard(){ var oc=document.querySelector('.mode[data-mode="online"]'); if(!oc||!serverUrl())return;
-    var tg=oc.querySelector('.tag'), pp=oc.querySelector('p'); var down=(ONLINE_HEALTH==='down');
+  /* Nothing may advertise LIVE, or promise a 30s wake-up, while the server is down. */
+  function applyOnlineStatus(){ var down=(ONLINE_HEALTH==='down');
+    var wh=$('wakeHint'); if(wh) wh.style.display=down?'none':'';
+    var oc=document.querySelector('.mode[data-mode="online"]'); if(!oc||!serverUrl())return;
+    var tg=oc.querySelector('.tag'), pp=oc.querySelector('p');
     if(tg){ tg.textContent=down?'OFFLINE':'LIVE'; tg.className=down?'tag soon':'tag hot'; }
     if(pp) pp.textContent=down?'Server is down right now — try Solo vs AI or Pass & Play.'
                               :'Create a room & invite a friend — real-time!'; }
@@ -1229,7 +1231,7 @@
   function showOnlineErr(e){ var m=e&&e.message;
     if(m==='no_server'||m==='no_io'){ $('onlineMsg').textContent=onlineErrText(e); return; }
     $('onlineMsg').textContent='Checking the server…';
-    probeOnline(function(st){ markOnlineCard();
+    probeOnline(function(st){ applyOnlineStatus();
       $('onlineMsg').textContent=(st==='down')?OFFLINE_MSG:(st==='offline')?NONET_MSG:onlineErrText(e); }); }
   function onlineErrText(e){ var m=e&&e.message; if(m==='no_server')return 'Online server not set up yet.'; if(m==='no_io')return 'Could not load the game client.'; return 'Could not reach the server (it may be waking up — wait ~30s and retry).'; }
   function joinErrText(res){ var e=res&&res.error; return e==='not_found'?'Room not found — check the code.':e==='full'?'That room is full.':e==='in_progress'?'That match already started.':'Could not join. Try again.'; }
@@ -1255,7 +1257,7 @@
   }
 
   function openOnline(){ document.body.dataset.gm='online'; $('onlineMsg').textContent=''; $('joinCode').value=''; syncSecs(); go('online');
-    probeOnline(function(st){ markOnlineCard();
+    probeOnline(function(st){ applyOnlineStatus();
       if(!$('online').classList.contains('active')) return;
       if(st==='down') $('onlineMsg').textContent=OFFLINE_MSG;
       else if(st==='offline') $('onlineMsg').textContent=NONET_MSG; }); }
