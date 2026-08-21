@@ -463,10 +463,15 @@
       </div>
       <label>Word length</label>
       <div class="seg" id="lenSeg"><button data-len="3">3</button><button data-len="4" class="active">4</button><button data-len="5">5</button></div>
-      <label>Difficulty · clock speed</label>
+      <label>Turn timer</label>
+      <div class="seg" id="secsSeg">
+        <button data-secs="8">8s</button><button data-secs="11" class="active">11s</button><button data-secs="15">15s</button>
+        <button data-secs="20">20s</button><button data-secs="30">30s</button><button data-secs="45">45s</button>
+      </div>
+      <label>Difficulty · how fast the clock shrinks</label>
       <div class="seg" id="diffSeg">
-        <button data-diff="chill">Chill<small>12s</small></button><button data-diff="normal" class="active">Normal<small>10s</small></button>
-        <button data-diff="blitz">Blitz<small>8s</small></button><button data-diff="insane">Insane<small>7s</small></button>
+        <button data-diff="chill">Chill<small>-1s / turn</small></button><button data-diff="normal" class="active">Normal<small>-1.5s / turn</small></button>
+        <button data-diff="blitz">Blitz<small>-2.5s / turn</small></button><button data-diff="insane">Insane<small>-3.5s / turn</small></button>
       </div>
       <div id="matchWrap"><label>Match length</label>
         <div class="seg" id="targetSeg"><button data-target="1">Single</button><button data-target="3" class="active">First to 3</button><button data-target="5">First to 5</button></div>
@@ -551,7 +556,12 @@
       <div class="sub">Create a room and share the code — or join a friend's room.</div>
       <label>Word length</label>
       <div class="seg" id="olenSeg"><button data-olen="3">3</button><button data-olen="4" class="active">4</button><button data-olen="5">5</button></div>
-      <label>Clock speed</label>
+      <label>Turn timer</label>
+      <div class="seg" id="osecsSeg">
+        <button data-osecs="8">8s</button><button data-osecs="11" class="active">11s</button><button data-osecs="15">15s</button>
+        <button data-osecs="20">20s</button><button data-osecs="30">30s</button><button data-osecs="45">45s</button>
+      </div>
+      <label>Difficulty · how fast the clock shrinks</label>
       <div class="seg" id="odiffSeg"><button data-odiff="chill">Chill</button><button data-odiff="normal" class="active">Normal</button><button data-odiff="blitz">Blitz</button><button data-odiff="insane">Insane</button></div>
       <button class="btn" id="createRoomBtn"><span class="ico" data-ic="plus"></span> Create a Room</button>
       <div style="text-align:center; margin:14px 0 4px; color:var(--muted); font-weight:700;">— or —</div>
@@ -671,8 +681,14 @@
   function IC(n,cls){ var p=ICONS[n]||''; return '<svg class="ic-svg'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>'; }
   /* uniform difficulty icon: 4 signal bars, first n active */
   function SIG(n){ var b=''; for(var i=0;i<4;i++){ var h=5+i*3.6, y=20-h, on=i<n; b+='<rect x="'+(3.5+i*5)+'" y="'+y+'" width="3.2" height="'+h+'" rx="1.4" fill="'+(on?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.5" opacity="'+(on?1:.32)+'"/>'; } return '<svg class="ic-svg" viewBox="0 0 24 24" aria-hidden="true">'+b+'</svg>'; }
-  var DIFF={ chill:{start:45,step:1}, normal:{start:45,step:1.5}, blitz:{start:45,step:2.5}, insane:{start:45,step:3.5} };
-  var MIN_LIMIT=17;
+  /* Difficulty only sets how fast the clock shrinks each turn now — the starting
+     seconds come from the player's own Turn timer pick (P.turnSecs). */
+  var DIFF={ chill:{step:1}, normal:{step:1.5}, blitz:{step:2.5}, insane:{step:3.5} };
+  var TIMER_CHOICES=[8,11,15,20,30,45];
+  var DEFAULT_SECS=11;
+  /* The floor scales with the pick, so a short clock is never born below it. */
+  function minLimit(start){ return Math.max(5, Math.round(start*.5)); }
+  function turnSecs(){ var n=+P.turnSecs; return TIMER_CHOICES.indexOf(n)>=0?n:DEFAULT_SECS; }
   var AVATARS=['😀','😎','🦊','🐼','🐯','🦁','🐸','🐶','🐵','🦄','🐲','👾','🤖','👑','🍀','⭐','🔥','🌈'];
 
   var THEMES={
@@ -686,7 +702,7 @@
     jungle:{ name:'Jungle', cost:250, a:'#0b3d20', b:'#1b5e3a', c:'#57cc99', p1:'#38b000', p2:'#2d9e5a', acc:'#c7f9cc', gold:'#ffd166', part:'#c7f9cc' }
   };
 
-  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false,
+  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false, turnSecs:DEFAULT_SECS,
     xp:0, level:1, coins:60, streak:0, lastDay:null, dailyDoneDay:null,
     themesOwned:['aurora','midnight'], powers:{ hint:2, time:2, radar:2, shield:1 },
     stats:{ games:0, words:0, wins:0, bestSolo:0, bestChain:0, dailyBest:0, fastest:99, noTimeout:0 },
@@ -914,6 +930,12 @@
   var sel={ len:4, diff:'normal', target:3, mode:'duel', pc:2, ai:'medium', olen:4, odiff:'normal' };
   function wireSeg(id,attr,cb){ var c=$(id); c.querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ c.querySelectorAll('button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); cb(b.dataset[attr]); }); }); }
   wireSeg('lenSeg','len',function(v){sel.len=+v;}); wireSeg('diffSeg','diff',function(v){sel.diff=v;}); wireSeg('targetSeg','target',function(v){sel.target=+v;}); wireSeg('partyCount','pc',function(v){sel.pc=+v;}); wireSeg('aiSeg','ai',function(v){sel.ai=v;}); wireSeg('olenSeg','olen',function(v){sel.olen=+v;}); wireSeg('odiffSeg','odiff',function(v){sel.odiff=v;});
+  /* One pick shared by the offline and online panels, remembered on the device. */
+  function syncSecs(){ var n=turnSecs(); [['secsSeg','secs'],['osecsSeg','osecs']].forEach(function(pair){
+    var c=$(pair[0]); if(!c)return; c.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', +b.dataset[pair[1]]===n); }); }); }
+  function pickSecs(v){ P.turnSecs=+v; save(); syncSecs(); }
+  wireSeg('secsSeg','secs',pickSecs); wireSeg('osecsSeg','osecs',pickSecs);
+
   $('practiceRow').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ Sound.resume(); sel.mode=b.dataset.pmode; openSetup(); }); });
 
   document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); var mode=m.dataset.mode;
@@ -925,7 +947,7 @@
     else if(sel.mode==='solo'){ t.textContent='Endless Solo'; s.textContent='Build the longest chain before the clock beats you.'; }
     else if(sel.mode==='daily'){ t.textContent='Daily Challenge'; s.textContent = (P.dailyDoneDay===today())?"You've played today's word — come back tomorrow!":'Everyone gets the same word today.'; }
     else if(sel.mode==='party'){ t.textContent='Party Mode'; s.textContent='Pass the phone. Miss a word and you\'re out. Last standing wins.'; $('partyFields').style.display=''; }
-    go('setup');
+    syncSecs(); go('setup');
   }
   $('playBtn').addEventListener('click',startGame);
 
@@ -947,7 +969,8 @@
   $('ringProg').style.strokeDasharray=CIRC;
   function startGame(){ Sound.resume();
     if(sel.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Already played today — see you tomorrow!'); return; }
-    var diff=DIFF[sel.diff];
+    var secs=turnSecs(), base=DIFF[sel.diff];
+    var diff={ start:secs, step:base.step, floor:minLimit(secs) };
     if(sel.mode==='ai'){ var st=randWord(sel.len); G={ mode:'ai', level:sel.ai, names:[(P.name||'You'),'AI · '+cap(sel.ai)], turn:0, aiSide:1, len:sel.len, diff:diff, current:st, used:[st], limit:diff.start, remaining:diff.start, chain:0, aiTimer:null }; setModeUI('ai'); go('game'); renderGame(); startTimer(); $('answer').focus(); }
     else if(sel.mode==='duel'){ G={ mode:'duel', names:[($('nameA').value.trim()||'You'),($('nameB').value.trim()||'Rival')], scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 }; setModeUI('duel'); nextRound(); }
     else if(sel.mode==='party'){ var names=[]; for(var i=0;i<sel.pc;i++)names.push('Player '+(i+1)); G={ mode:'party', names:names, alive:names.map(function(){return true;}), turn:0, len:sel.len, diff:diff, current:randWord(sel.len), used:[], limit:diff.start, remaining:diff.start, chain:0 }; G.used.push(G.current); setModeUI('party'); go('game'); renderGame(); startTimer(); $('answer').focus(); }
@@ -1002,10 +1025,10 @@
     var pts=10+5*(G.current.length-3)+Math.round(fast*15); G.combo=(G.combo||0)+1; pts=Math.round(pts*(1+(G.combo-1)*.1));
     Sound.ok(); haptic(15); if(spent<P.stats.fastest)P.stats.fastest=Math.round(spent*10)/10;
     var prev=G.current; G.current=guess; G.used.push(guess); G.chain=(G.chain||0)+1; P.stats.words++;
-    if(G.mode==='ai'){ G.turn=1; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(2); renderGame(); renderTiles(true,prev); startTimer(); aiThink(); }
-    else if(G.mode==='duel'){ G.turn=1-G.turn; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(3); addCoins(1); renderGame(); renderTiles(true,prev); startTimer(); }
-    else if(G.mode==='party'){ do{ G.turn=(G.turn+1)%G.names.length; }while(!G.alive[G.turn]); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step*.5); addXP(1); renderGame(); renderTiles(true,prev); startTimer(); }
-    else { G.score+=pts; scorePop(pts); G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true,prev); startTimer(); }
+    if(G.mode==='ai'){ G.turn=1; G.limit=Math.max(G.diff.floor,G.limit-G.diff.step); addXP(2); renderGame(); renderTiles(true,prev); startTimer(); aiThink(); }
+    else if(G.mode==='duel'){ G.turn=1-G.turn; G.limit=Math.max(G.diff.floor,G.limit-G.diff.step); addXP(3); addCoins(1); renderGame(); renderTiles(true,prev); startTimer(); }
+    else if(G.mode==='party'){ do{ G.turn=(G.turn+1)%G.names.length; }while(!G.alive[G.turn]); G.limit=Math.max(G.diff.floor,G.limit-G.diff.step*.5); addXP(1); renderGame(); renderTiles(true,prev); startTimer(); }
+    else { G.score+=pts; scorePop(pts); G.limit=Math.max(G.diff.floor,G.limit-G.diff.step); addXP(Math.max(2,Math.round(pts/6))); if(G.combo%3===0){ addCoins(1); Sound.coin(); } renderGame(); renderTiles(true,prev); startTimer(); }
     if(G.combo===5){ toast('🔥','5 combo! On fire!'); confetti(); } if(spent<1.5)unlock('speed'); if(G.chain>=12)unlock('chain12'); if(G.chain>=25)unlock('chain25');
     save();
     try{ if(document.getElementById('game').classList.contains('active')) $('answer').focus(); }catch(e){}
@@ -1031,7 +1054,7 @@
     G.aiTimer=setTimeout(function(){ if(!G||G.mode!=='ai'||G.turn!==1) return; if(whiff||!choice) return; /* whiff => let clock run out */ aiPlay(choice); }, Math.max(300,delay*1000));
   }
   function aiPlay(word){ if(!G||G.mode!=='ai'||G.turn!==1) return; var prev=G.current; Sound.ok(); haptic(12);
-    G.current=word; G.used.push(word); G.chain=(G.chain||0)+1; G.turn=0; G.limit=Math.max(MIN_LIMIT,G.limit-G.diff.step);
+    G.current=word; G.used.push(word); G.chain=(G.chain||0)+1; G.turn=0; G.limit=Math.max(G.diff.floor,G.limit-G.diff.step);
     renderGame(); renderTiles(true,prev); startTimer(); try{ $('answer').focus(); }catch(e){} }
   function endAi(winnerIdx,reason){ stopTimer(); var won=(winnerIdx===0); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain);
     if(won){ P.stats.wins++; unlock('firstwin'); if(G.level==='hard')unlock('beathard'); if(G.level==='expert')unlock('beatexpert'); addXP(15); addCoins(5); bumpStreak(); }
@@ -1140,7 +1163,7 @@
   $('swHaptic').addEventListener('click',function(){ P.haptic=!P.haptic; renderSettings(); save(); if(P.haptic)haptic(20); });
   $('sndG').addEventListener('click',function(){ P.sound=!P.sound; save(); $('sndG').innerHTML=P.sound?IC('sound'):IC('mute'); renderSettings(); });
   $('editProfBtn').addEventListener('click',function(){ openOnboard(true); });
-  $('howBtn').addEventListener('click',function(){ modal('<div class="em">❔</div><h3>How to play</h3><p style="text-align:left; line-height:1.7; margin-top:8px;">🔤 You get a word like <b>BOOK</b>.<br>✏️ Change <b>one letter</b> to make a new word — <b>BOOK→TOOK</b>.<br>⏱️ Beat the shrinking clock (down to 5s).<br>🚫 No repeats.<br>⭐ Fast + longer words + combos = more points, coins &amp; XP.<br>⚡ Spend power-ups to hint, add time, scan, or shield.</p><button class="btn" data-close>Got it 👍</button>'); });
+  $('howBtn').addEventListener('click',function(){ modal('<div class="em">❔</div><h3>How to play</h3><p style="text-align:left; line-height:1.7; margin-top:8px;">🔤 You get a word like <b>BOOK</b>.<br>✏️ Change <b>one letter</b> to make a new word — <b>BOOK→TOOK</b>.<br>⏱️ Beat the shrinking clock — pick your turn timer before you start.<br>🚫 No repeats.<br>⭐ Fast + longer words + combos = more points, coins &amp; XP.<br>⚡ Spend power-ups to hint, add time, scan, or shield.</p><button class="btn" data-close>Got it 👍</button>'); });
   $('resetBtn').addEventListener('click',function(){ modal('<div class="em">🗑️</div><h3>Reset everything?</h3><p>This wipes your level, coins, themes and stats on this device. Cannot be undone.</p><button class="btn" style="background:linear-gradient(135deg,#ff6b6b,#c92a2a)" id="doReset">Yes, reset</button><button class="btn ghost" data-close>Cancel</button>');
     $('doReset').addEventListener('click',function(){ localStorage.removeItem('wordswap2'); location.reload(); }); });
 
@@ -1191,9 +1214,9 @@
     socket.on('gameover', function(r){ onlineGameOver(r); });
   }
 
-  function openOnline(){ document.body.dataset.gm='online'; $('onlineMsg').textContent=''; $('joinCode').value=''; go('online'); }
+  function openOnline(){ document.body.dataset.gm='online'; $('onlineMsg').textContent=''; $('joinCode').value=''; syncSecs(); go('online'); }
   function createRoom(){ $('onlineMsg').textContent=''; $('createRoomBtn').textContent='Connecting…'; ensureSocket(function(err){ $('createRoomBtn').textContent='➕ Create a Room'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
-    socket.emit('create',{userId:myUidGet(),name:P.name||'You',avatar:P.avatar,len:sel.olen,diff:sel.odiff}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:true,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent='Could not create room. Try again.'; }); }); }
+    socket.emit('create',{userId:myUidGet(),name:P.name||'You',avatar:P.avatar,len:sel.olen,diff:sel.odiff,secs:turnSecs()}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:true,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent='Could not create room. Try again.'; }); }); }
   function joinRoomCode(code){ code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); if(code.length<4){ $('onlineMsg').textContent='Enter the room code.'; return; } $('onlineMsg').textContent=''; $('joinRoomBtn').textContent='…'; ensureSocket(function(err){ $('joinRoomBtn').textContent='Join'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
     socket.emit('join',{code:code,userId:myUidGet(),name:P.name||'You',avatar:P.avatar}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:false,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent=joinErrText(res); }); }); }
   function openLobby(code){ O=O||{}; O.code=code; go('lobby'); $('roomCode').textContent=code; renderQR(code); renderLobby({code:code,players:(O.players||[]),hostUserId:O.hostUserId}); }

@@ -1,7 +1,7 @@
 /* WordSwap service worker.
  * Network-first for the page + config (so updates show immediately when online),
  * cache-first for the rest of the app shell (fast + offline). */
-var CACHE = 'wordswap-v15';
+var CACHE = 'wordswap-v16';
 var ASSETS = ['./', './index.html', './words.js', './config.js', './manifest.json',
   './logo.webp', './icon192.png', './icon512.png', './icon1024.png', './appletouchicon.png', './iconmaskable512.png'];
 

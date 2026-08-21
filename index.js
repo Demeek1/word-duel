@@ -14,8 +14,14 @@ const DICT = new Set(WORDS);
 const BY_LEN = {};
 DICT.forEach((w) => { (BY_LEN[w.length] = BY_LEN[w.length] || []).push(w); });
 
-const DIFF = { chill:{start:45,step:1}, normal:{start:45,step:1.5}, blitz:{start:45,step:2.5}, insane:{start:45,step:3.5} };
-const MIN_LIMIT = 17;
+// Difficulty only sets how fast the clock shrinks; the room's starting seconds
+// come from the host's Turn timer pick, sent as `secs` on create.
+const DIFF = { chill:{step:1}, normal:{step:1.5}, blitz:{step:2.5}, insane:{step:3.5} };
+const TIMER_CHOICES = [8, 11, 15, 20, 30, 45];
+const DEFAULT_SECS = 11;
+// The floor scales with the pick, so a short clock never starts below it.
+const minLimit = (start) => Math.max(5, Math.round(start * 0.5));
+const cleanSecs = (v) => (TIMER_CHOICES.includes(+v) ? +v : DEFAULT_SECS);
 const MAX_PLAYERS = 2;          // friend match = 1v1 for the MVP
 const GRACE_MS = 20000;         // reconnect grace before forfeit
 const ROOM_TTL_MS = 60 * 60 * 1000;
@@ -202,11 +208,13 @@ io.on('connection', (socket) => {
     try {
       const len = [3, 4, 5].includes(+payload.len) ? +payload.len : 4;
       const diffKey = DIFF[payload.diff] ? payload.diff : 'normal';
+      // Older clients do not send `secs` — they fall back to the default.
+      const secs = cleanSecs(payload.secs);
       const userId = String(payload.userId || socket.id).slice(0, 64);
       const code = genCode();
       const room = {
-        code, hostUserId: userId, state: 'lobby', len, diffKey,
-        word: '', used: [], turnIndex: 0, limit: DIFF[diffKey].start, deadline: null, timer: null,
+        code, hostUserId: userId, state: 'lobby', len, diffKey, secs,
+        word: '', used: [], turnIndex: 0, limit: secs, deadline: null, timer: null,
         graceTimers: {}, createdAt: Date.now(),
         players: [{ userId, name: cleanName(payload.name), avatar: cleanAvatar(payload.avatar), socketId: socket.id, connected: true }],
       };
@@ -255,7 +263,7 @@ io.on('connection', (socket) => {
     room.word = pickWord(room.len);
     room.used = [room.word];
     room.turnIndex = 0;
-    room.limit = DIFF[room.diffKey].start;
+    room.limit = room.secs;
     if (cb) cb({ ok: true });
     startTurn(room);
   });
@@ -280,7 +288,7 @@ io.on('connection', (socket) => {
     room.word = guess;
     room.used.push(guess);
     room.turnIndex = (room.turnIndex + 1) % room.players.length;
-    room.limit = Math.max(MIN_LIMIT, room.limit - DIFF[room.diffKey].step);
+    room.limit = Math.max(minLimit(room.secs), room.limit - DIFF[room.diffKey].step);
     if (cb) cb({ ok: true });
     io.to(room.code).emit('moved', { word: guess, byUserId: me.userId, changedIndex });
     startTurn(room);
@@ -301,7 +309,7 @@ io.on('connection', (socket) => {
   socket.on('rematch', (cb) => {
     const room = findRoomBySocket(socket); if (!room) return cb && cb({ ok: false });
     clearTurnTimer(room);
-    room.state = 'lobby'; room.word = ''; room.used = []; room.turnIndex = 0; room.limit = DIFF[room.diffKey].start; room.deadline = null;
+    room.state = 'lobby'; room.word = ''; room.used = []; room.turnIndex = 0; room.limit = room.secs; room.deadline = null;
     if (cb) cb({ ok: true });
     io.to(room.code).emit('rematch');
     emitLobby(room);
