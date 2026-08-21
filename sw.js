@@ -1,7 +1,7 @@
 /* WordSwap service worker.
  * Network-first for the page + config (so updates show immediately when online),
  * cache-first for the rest of the app shell (fast + offline). */
-var CACHE = 'wordswap-v17';
+var CACHE = 'wordswap-v18';
 var ASSETS = ['./', './index.html', './words.js', './config.js', './manifest.json',
   './logo.webp', './icon192.png', './icon512.png', './icon1024.png', './appletouchicon.png', './iconmaskable512.png'];
 
@@ -17,6 +17,11 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
+  // Only same-origin traffic belongs to this cache. Cross-origin calls (the game
+  // server, Supabase) must go straight to the network: the fallbacks below answer
+  // a failed request with index.html, which would hand the caller a forged 200
+  // and make a dead server look healthy.
+  try { if (new URL(e.request.url).origin !== self.location.origin) return; } catch (err) { return; }
   var isNav = e.request.mode === 'navigate' || e.request.destination === 'document';
   var isConfig = /config\.js(\?|$)/.test(e.request.url);
 

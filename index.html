@@ -1206,9 +1206,15 @@
     function settle(v){ ONLINE_HEALTH=v; cb(v); }
     var url=serverUrl(); if(!url){ settle('unreachable'); return; }
     if(navigator.onLine===false){ settle('offline'); return; }
+    var sameOrigin=false; try{ sameOrigin=(new URL(url,location.href).origin===location.origin); }catch(e){}
     var t0=Date.now(), c=new AbortController(), timer=setTimeout(function(){ c.abort(); },9000);
-    fetch(url+'/health',{ cache:'no-store', signal:c.signal }).then(
-      function(r){ clearTimeout(timer); settle(r.ok?'ok':'down'); },
+    /* HEAD, not GET: our service worker only intercepts GET, so this reaches the
+       network even for a player still running an older cached worker. */
+    fetch(url+'/health',{ method:'HEAD', cache:'no-store', signal:c.signal }).then(
+      function(r){ clearTimeout(timer);
+        /* A worker that answers failed requests from cache can hand back a forged
+           200, so require a genuine cross-origin reply rather than trusting r.ok. */
+        settle((r.ok && (sameOrigin || r.type==='cors')) ? 'ok' : 'down'); },
       function(){ clearTimeout(timer);
         if(navigator.onLine===false){ settle('offline'); return; }
         settle((Date.now()-t0)<2500 ? 'down' : 'unreachable'); });
