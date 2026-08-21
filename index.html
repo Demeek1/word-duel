@@ -750,20 +750,36 @@
       best_solo:P.stats.bestSolo, best_chain:P.stats.bestChain, games:P.stats.games, wins:P.stats.wins, words:P.stats.words,
       updated_at:new Date().toISOString() }).then(function(){},function(){}); }catch(e){} }
 
-  // Cloud is the single source of truth. On sign-in: if a cloud profile exists,
-  // adopt its values (so data is identical everywhere, every visit). If it's a
-  // brand-new account, seed the cloud from whatever local progress exists.
+  // Identity comes from the account; progress takes whichever side is further along.
+  //
+  // This used to adopt the cloud row wholesale, which quietly destroyed progress in
+  // two ways. Signing in to an existing account threw away everything built on this
+  // device beforehand - and since a guest is silently given an anonymous account,
+  // that is every player who ever signs in properly. It also runs on every load, so
+  // a push that failed while offline was undone on the next visit: local was rolled
+  // back to the stale cloud row rather than the other way round.
+  //
+  // Taking the larger value can be generous across devices - spend coins on one and
+  // a stale larger balance elsewhere wins - but the two failure directions are not
+  // equal. Handing a player coins they already spent is a footnote; deleting a
+  // 40-day streak is the reason they stop opening the app.
   function pullMerge(){ if(!supa||!USER) return;
     supa.from('profiles').select('*').eq('id',USER.id).maybeSingle().then(function(res){ var r=res.data;
       if(r){
+        var mx=function(a,b){ return Math.max(a||0,b||0); };
         if(r.username) P.name=r.username;
         if(r.avatar) P.avatar=r.avatar;
-        P.level=r.level||1; P.xp=r.xp||0;
-        if(r.coins!=null) P.coins=r.coins;
-        P.streak=r.streak||0;
-        P.stats.bestSolo=r.best_solo||0; P.stats.bestChain=r.best_chain||0;
-        P.stats.games=r.games||0; P.stats.wins=r.wins||0; P.stats.words=r.words||0;
+        // Level travels with the xp it was earned at, so the pair cannot desync.
+        if((r.xp||0)>(P.xp||0)){ P.xp=r.xp||0; P.level=r.level||1; }
+        P.coins=mx(P.coins,r.coins);
+        P.streak=mx(P.streak,r.streak);
+        P.stats.bestSolo=mx(P.stats.bestSolo,r.best_solo);
+        P.stats.bestChain=mx(P.stats.bestChain,r.best_chain);
+        P.stats.games=mx(P.stats.games,r.games);
+        P.stats.wins=mx(P.stats.wins,r.wins);
+        P.stats.words=mx(P.stats.words,r.words);
         try{localStorage.setItem('wordswap2',JSON.stringify(P));}catch(e){}
+        pushProfile();   // the merge is the new truth, so the next device starts from it
         renderHUD(); if($('profile') && $('profile').classList.contains('active')) renderProfile();
       } else {
         pushProfile(); // new account -> seed cloud from local
