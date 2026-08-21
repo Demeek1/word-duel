@@ -461,6 +461,7 @@
           <button data-ai="easy"><span class="sig" data-sig="1"></span>Easy</button><button data-ai="medium" class="active"><span class="sig" data-sig="2"></span>Medium</button><button data-ai="hard"><span class="sig" data-sig="3"></span>Hard</button><button data-ai="expert"><span class="sig" data-sig="4"></span>Expert</button>
         </div>
       </div>
+      <div id="optWrap">
       <label>Word length</label>
       <div class="seg" id="lenSeg"><button data-len="3">3</button><button data-len="4" class="active">4</button><button data-len="5">5</button></div>
       <label>Turn timer</label>
@@ -472,6 +473,11 @@
       <div class="seg" id="diffSeg">
         <button data-diff="chill">Chill<small>-1s / turn</small></button><button data-diff="normal" class="active">Normal<small>-1.5s / turn</small></button>
         <button data-diff="blitz">Blitz<small>-2.5s / turn</small></button><button data-diff="insane">Insane<small>-3.5s / turn</small></button>
+      </div>
+      </div>
+      <div id="dailyFixed" style="display:none;">
+        <label>Today's challenge</label>
+        <div class="sub" style="margin:0 0 4px;">Everyone plays the same 4-letter word on the same 11s clock at Normal. One try per day — the board is only fair if the settings are.</div>
       </div>
       <div id="matchWrap"><label>Match length</label>
         <div class="seg" id="targetSeg"><button data-target="1">Single</button><button data-target="3" class="active">First to 3</button><button data-target="5">First to 5</button></div>
@@ -512,6 +518,7 @@
         <div class="reward" id="resReward"></div>
         <button class="btn alt" id="againBtn">Play again ▶</button>
         <button class="btn ghost" id="shareBtn"><span class="ico" data-ic="share"></span> Share</button>
+        <button class="btn ghost" id="resBoardBtn" style="display:none;"><span class="ico" data-ic="trophy"></span> Today's leaderboard</button>
         <button class="btn ghost" data-home><span class="ico" data-ic="home"></span> Home</button>
       </div>
     </div>
@@ -686,6 +693,9 @@
   var DIFF={ chill:{step:1}, normal:{step:1.5}, blitz:{step:2.5}, insane:{step:3.5} };
   var TIMER_CHOICES=[8,11,15,20,30,45];
   var DEFAULT_SECS=11;
+  /* The Daily ignores both pickers. A shared word means nothing on a leaderboard if
+     one player ran a 45s chill clock and another an 8s insane one. */
+  var DAILY_SECS=DEFAULT_SECS, DAILY_DIFF='normal';
   /* The floor scales with the pick, so a short clock is never born below it. */
   function minLimit(start){ return Math.max(5, Math.round(start*.5)); }
   function turnSecs(){ var n=+P.turnSecs; return TIMER_CHOICES.indexOf(n)>=0?n:DEFAULT_SECS; }
@@ -710,7 +720,10 @@
   var P=load();
   function load(){ try{ var s=JSON.parse(localStorage.getItem('wordswap2'))||{}; var m=JSON.parse(JSON.stringify(DEFAULT));
     for(var k in s){ m[k]=s[k]; } m.stats=Object.assign({},DEFAULT.stats,s.stats||{}); m.powers=Object.assign({},DEFAULT.powers,s.powers||{});
-    m.themesOwned=s.themesOwned||DEFAULT.themesOwned.slice(); m.ach=s.ach||{}; m.lead=s.lead||[]; return m; }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
+    m.themesOwned=s.themesOwned||DEFAULT.themesOwned.slice(); m.ach=s.ach||{}; m.lead=s.lead||[];
+    m.lastDay=normDayKey(m.lastDay); m.dailyDoneDay=normDayKey(m.dailyDoneDay); m.lastReward=normDayKey(m.lastReward);
+    m.lead.forEach(function(e){ if(e&&e.d) e.d=normDayKey(e.d); });
+    return m; }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); } }
   function save(){ try{ localStorage.setItem('wordswap2', JSON.stringify(P)); }catch(e){} schedulePush(); }
 
   /* ===================== CLOUD (Supabase) ===================== */
@@ -753,14 +766,14 @@
     },function(){ updateAccountUI(); });
   }
 
-  function submitDaily(score){ if(!supa||!USER) return; var day=new Date().toISOString().slice(0,10);
+  function submitDaily(score){ if(!supa||!USER) return; var day=today();
     supa.from('daily_scores').select('score').eq('user_id',USER.id).eq('day',day).maybeSingle().then(function(r){
       if(!r.data || score>r.data.score){ supa.from('daily_scores').upsert({user_id:USER.id,day:day,score:score},{onConflict:'user_id,day'}).then(function(){},function(){}); }
     },function(){});
   }
 
   function fetchBoard(kind){ if(!supa) return Promise.resolve(null);
-    if(kind==='daily'){ var day=new Date().toISOString().slice(0,10);
+    if(kind==='daily'){ var day=today();
       return supa.from('daily_scores').select('score, profiles(username,avatar)').eq('day',day).order('score',{ascending:false}).limit(50)
         .then(function(r){ return (r.data||[]).map(function(x){ return {name:(x.profiles&&x.profiles.username)||'Player', av:(x.profiles&&x.profiles.avatar)||'😀', score:x.score}; }); },function(){return null;}); }
     return supa.from('profiles').select('username,avatar,best_solo,level').order('best_solo',{ascending:false}).limit(50)
@@ -848,8 +861,19 @@
   }
   function localBoard(){ var L=(P.lead||[]).slice(0,10); if(!L.length) return '<div class="sub">Play Solo to set a local score. Add your Supabase keys to unlock the worldwide board!</div>';
     return L.map(function(r,i){ return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="av">'+P.avatar+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>'; }).join(''); }
-  function today(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-  function yesterday(){ var d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+  /* One UTC day drives the word, the streak, the leaderboard row and the shared
+     puzzle number. They used to disagree: the word and streak came from the local
+     unpadded date ('2026-8-22') while the leaderboard row and puzzle number came
+     from UTC, so near midnight a player could post to one day's board carrying
+     another day's word, and "everyone gets the same word today" was not true
+     across timezones. */
+  function dayKey(d){ return (d||new Date()).toISOString().slice(0,10); }
+  function today(){ return dayKey(); }
+  function yesterday(){ var d=new Date(); d.setUTCDate(d.getUTCDate()-1); return dayKey(d); }
+  function daysBetween(a,b){ return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000); }
+  /* Saved profiles hold the old local unpadded keys; pad them so streaks survive. */
+  function normDayKey(v){ var m=/^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(v||''); 
+    return m ? m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2) : v; }
   function xpNeed(l){ return 80+(l-1)*55; }
 
   /* ---- theme ---- */
@@ -942,6 +966,7 @@
     if(mode==='online'){ if(!serverUrl()){ modal('<div class="em">🌐</div><h3>Online is almost ready</h3><p>The game server isn\'t connected yet. Once it\'s deployed to Render and its URL is in <b>config.js</b>, this unlocks real-time friend matches. For now, try <b>Solo vs AI</b> or <b>Pass &amp; Play</b>.</p><button class="btn" data-close>Got it</button>'); return; } Sound.resume(); openOnline(); return; }
     sel.mode=mode; openSetup(); }); });
   function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); document.body.dataset.gm=sel.mode; $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none'; $('aiWrap').style.display='none';
+    $('optWrap').style.display=(sel.mode==='daily')?'none':''; $('dailyFixed').style.display=(sel.mode==='daily')?'':'none';
     if(sel.mode==='ai'){ t.textContent='Solo vs AI'; s.textContent='Play the computer. Pick your challenge.'; $('aiWrap').style.display=''; }
     else if(sel.mode==='duel'){ t.textContent='Pass & Play'; s.textContent='Two players, one screen. Last one standing wins.'; $('duelFields').style.display=''; $('matchWrap').style.display=''; $('nameA').value=P.name||'You'; }
     else if(sel.mode==='solo'){ t.textContent='Endless Solo'; s.textContent='Build the longest chain before the clock beats you.'; }
@@ -969,7 +994,8 @@
   $('ringProg').style.strokeDasharray=CIRC;
   function startGame(){ Sound.resume();
     if(sel.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Already played today — see you tomorrow!'); return; }
-    var secs=turnSecs(), base=DIFF[sel.diff];
+    var isDaily=(sel.mode==='daily');
+    var secs=isDaily?DAILY_SECS:turnSecs(), base=DIFF[isDaily?DAILY_DIFF:sel.diff];
     var diff={ start:secs, step:base.step, floor:minLimit(secs) };
     if(sel.mode==='ai'){ var st=randWord(sel.len); G={ mode:'ai', level:sel.ai, names:[(P.name||'You'),'AI · '+cap(sel.ai)], turn:0, aiSide:1, len:sel.len, diff:diff, current:st, used:[st], limit:diff.start, remaining:diff.start, chain:0, aiTimer:null }; setModeUI('ai'); go('game'); renderGame(); startTimer(); $('answer').focus(); }
     else if(sel.mode==='duel'){ G={ mode:'duel', names:[($('nameA').value.trim()||'You'),($('nameB').value.trim()||'Rival')], scores:[0,0], target:sel.target, len:sel.len, diff:diff, roundNum:0, firstPlayer:0, chain:0 }; setModeUI('duel'); nextRound(); }
@@ -1022,6 +1048,7 @@
     else if(!DICT.has(guess))fail='"'+guess.toUpperCase()+'" isn\'t a known word';
     if(fail){ Sound.err(); haptic(60); $('msg').textContent=fail; var wc=$('wtiles'); wc.classList.remove('shake'); void wc.offsetWidth; wc.classList.add('shake'); return; }
     var fast=Math.max(0,G.remaining/G.limit), spent=G.limit-G.remaining;
+    (G.pace=G.pace||[]).push(fast);   // clock left on each word, for the share grid
     var pts=10+5*(G.current.length-3)+Math.round(fast*15); G.combo=(G.combo||0)+1; pts=Math.round(pts*(1+(G.combo-1)*.1));
     Sound.ok(); haptic(15); if(spent<P.stats.fastest)P.stats.fastest=Math.round(spent*10)/10;
     var prev=G.current; G.current=guess; G.used.push(guess); G.chain=(G.chain||0)+1; P.stats.words++;
@@ -1073,21 +1100,30 @@
       showResult({ em:'🏆', title:G.names[winnerIdx]+' wins the match!', body:reason, stats:[['Final',G.scores[0]+' – '+G.scores[1]],['Words',G.chain]], reward:[['🪙','+5'],['⭐','+18']], mode:'duel' }); confetti(); Sound.big(); haptic([30,50,30]); }
     else { toast('🎉',G.names[winnerIdx]+' takes the round!'); showResult({ em:'⏱️', title:G.names[winnerIdx]+' wins the round', body:reason, stats:[['Score',G.scores[0]+' – '+G.scores[1]],['Round',G.roundNum]], reward:[], mode:'duel-continue' }); Sound.big(); }
   }
-  function dayNum(){ return Math.floor((Date.now()-Date.UTC(2024,0,1))/86400000); }
-  function gridSquares(n){ n=Math.max(1,Math.min(n,40)); var s=''; for(var i=0;i<n;i++)s+='🟪'; return s; }
-  function dailyShareText(chain,score){ var n=Math.min(chain,30),g='',i; for(i=0;i<n;i++){ g+='🟪'; if((i+1)%10===0&&i+1<n)g+='\n'; }
-    return 'WordSwap Daily #'+dayNum()+'\n'+g+'\n'+chain+'-word chain · '+score+' pts\nCan you beat it? '+location.origin+location.pathname; }
+  /* Derived from today() so the shared puzzle number can never drift from the word. */
+  function dayNum(){ return daysBetween('2024-01-01', today()); }
+  /* One square per word played, shaded by how much clock was left when it was
+     answered. The grid used to be identical squares counting the chain, which the
+     score line already stated — so a shared result had nothing in it to read. */
+  function paceSquare(f){ return f>=.66?'🟪':(f>=.33?'🟦':'⬜'); }
+  function paceGrid(pace,perLine,cap){ var a=(pace||[]).slice(0,cap||30), g='', i;
+    for(i=0;i<a.length;i++){ g+=paceSquare(a[i]); if(perLine&&(i+1)%perLine===0&&i+1<a.length) g+='\n'; }
+    return g; }
+  function gridSquares(pace){ return paceGrid(pace,0,40); }
+  function dailyShareText(chain,score,pace){
+    return 'WordSwap Daily #'+dayNum()+'\n'+paceGrid(pace,10,30)+'\n'+chain+'-word chain · '+score+' pts\nCan you beat it? '+location.origin+location.pathname; }
   function endSolo(){ stopTimer(); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain); var best=false; var isDaily=(G.mode==='daily');
     if(isDaily){ if(G.score>P.stats.dailyBest)P.stats.dailyBest=G.score; P.dailyDoneDay=today(); bumpStreak(); submitDaily(G.score); }
     if(G.score>P.stats.bestSolo){ P.stats.bestSolo=G.score; best=true; }
     P.lead.push({name:P.name||'You',score:G.score,d:today()}); P.lead.sort(function(a,b){return b.score-a.score;}); P.lead=P.lead.slice(0,10);
     var coins=Math.max(1,Math.round(G.score/40)); addXP(8); addCoins(coins); if(G.chain>=25)unlock('chain25'); save();
-    var bodyHtml = isDaily ? ('<div style="font-size:20px;line-height:1.35;word-break:break-word">'+gridSquares(G.chain)+'</div><div style="margin-top:6px;color:var(--muted)">Daily #'+dayNum()+' · spoiler-free to share</div>') : null;
-    showResult({ em:best?'🥇':'⚡', title:best?'New personal best!':(isDaily?'Daily complete!':'Chain over!'), body:isDaily?null:('You chained '+G.chain+' words.'), bodyHtml:bodyHtml, share:isDaily?dailyShareText(G.chain,G.score):null,
+    var bodyHtml = isDaily ? ('<div style="font-size:20px;line-height:1.35;word-break:break-word">'+gridSquares(G.pace)+'</div><div style="margin-top:6px;color:var(--muted)">Daily #'+dayNum()+' · spoiler-free to share · new word at midnight UTC</div>') : null;
+    showResult({ em:best?'🥇':'⚡', title:best?'New personal best!':(isDaily?'Daily complete!':'Chain over!'), body:isDaily?null:('You chained '+G.chain+' words.'), bodyHtml:bodyHtml, share:isDaily?dailyShareText(G.chain,G.score,G.pace):null, board:isDaily,
       stats:[['Score',G.score],['Chain',G.chain],['Best',Math.max(P.stats.bestSolo,G.score)],['Streak',P.streak]], reward:[['🪙','+'+coins],['⭐','+8']], mode:G.mode });
     if(best){ confetti(); Sound.big(); haptic([30,50,30]); } else Sound.up(); }
 
-  function bumpStreak(){ var t=today(); if(P.lastDay===t)return; P.streak=(P.lastDay===yesterday())?P.streak+1:1; P.lastDay=t; renderHUD();
+  function bumpStreak(){ var t=today(); if(P.lastDay===t)return;
+    P.streak=(P.lastDay && daysBetween(P.lastDay,t)===1)?P.streak+1:1; P.lastDay=t; renderHUD();
     if(P.streak>=3)unlock('streak3'); if(P.streak>=7)unlock('streak7'); toast('🔥','Day '+P.streak+' streak!'); }
 
   var resCtx=null;
@@ -1095,7 +1131,12 @@
     $('shareBtn').innerHTML = r.share ? (IC('share')+' Share result') : (IC('share')+' Share');
     $('resStats').innerHTML=(r.stats||[]).map(function(s){return '<div class="stat"><div class="v">'+s[1]+'</div><div class="k">'+s[0]+'</div></div>';}).join('');
     $('resReward').innerHTML=(r.reward||[]).map(function(x){return '<div class="r">'+x[0]+' '+x[1]+'</div>';}).join('');
+    $('resBoardBtn').style.display=r.board?'':'none';
     $('againBtn').textContent=r.mode==='duel-continue'?'Next round ▶':'Play again ▶'; go('result'); }
+  $('resBoardBtn').addEventListener('click',function(){
+    curTab='daily';
+    $('boardTabs').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x.dataset.tab==='daily'); });
+    loadBoard('daily'); go('board'); });
   $('againBtn').addEventListener('click',function(){ if(!resCtx)return;
     if(resCtx.mode==='online'){ if(socket){ socket.emit('rematch'); toast('🔁','Rematch requested…'); } return; }
     if(resCtx.mode==='duel-continue'){ nextRound(); } else if(resCtx.mode==='duel'){ G.scores=[0,0]; G.roundNum=0; G.firstPlayer=(G.firstPlayer+1)%2; nextRound(); } else if(resCtx.mode==='daily' && P.dailyDoneDay===today()){ toast('📅','Come back tomorrow for a new word!'); home(); } else { startGame(); } });
