@@ -534,6 +534,9 @@
       <h2 style="margin-top:18px;">Power-ups</h2>
       <div class="sub">Buy with coins. Use them in Solo, Duel &amp; Party.</div>
       <div id="pwShop"></div>
+      <h2 style="margin-top:18px;">Streak</h2>
+      <div class="sub">A freeze covers one missed day, so a long streak survives a day off. One is used automatically when you come back.</div>
+      <div id="freezeShop"></div>
     </div>
   </section>
 
@@ -696,6 +699,9 @@
   /* The Daily ignores both pickers. A shared word means nothing on a leaderboard if
      one player ran a 45s chill clock and another an 8s insane one. */
   var DAILY_SECS=DEFAULT_SECS, DAILY_DIFF='normal';
+  /* A streak freeze covers one missed day. Capped so a hoard cannot make the
+     streak meaningless — it should still be possible to lose one. */
+  var FREEZE_COST=60, FREEZE_MAX=3;
   /* The floor scales with the pick, so a short clock is never born below it. */
   function minLimit(start){ return Math.max(5, Math.round(start*.5)); }
   function turnSecs(){ var n=+P.turnSecs; return TIMER_CHOICES.indexOf(n)>=0?n:DEFAULT_SECS; }
@@ -712,7 +718,7 @@
     jungle:{ name:'Jungle', cost:250, a:'#0b3d20', b:'#1b5e3a', c:'#57cc99', p1:'#38b000', p2:'#2d9e5a', acc:'#c7f9cc', gold:'#ffd166', part:'#c7f9cc' }
   };
 
-  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false, turnSecs:DEFAULT_SECS,
+  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false, turnSecs:DEFAULT_SECS, freezes:1,
     xp:0, level:1, coins:60, streak:0, lastDay:null, dailyDoneDay:null,
     themesOwned:['aurora','midnight'], powers:{ hint:2, time:2, radar:2, shield:1 },
     stats:{ games:0, words:0, wins:0, bestSolo:0, bestChain:0, dailyBest:0, fastest:99, noTimeout:0 },
@@ -1122,9 +1128,21 @@
       stats:[['Score',G.score],['Chain',G.chain],['Best',Math.max(P.stats.bestSolo,G.score)],['Streak',P.streak]], reward:[['🪙','+'+coins],['⭐','+8']], mode:G.mode });
     if(best){ confetti(); Sound.big(); haptic([30,50,30]); } else Sound.up(); }
 
+  /* Freezes are spent automatically on the player's return: by the time they open
+     the app the day is already missed, so there is nothing left to opt into. One
+     is earned every 7 days, so a long streak carries its own insurance. */
   function bumpStreak(){ var t=today(); if(P.lastDay===t)return;
-    P.streak=(P.lastDay && daysBetween(P.lastDay,t)===1)?P.streak+1:1; P.lastDay=t; renderHUD();
-    if(P.streak>=3)unlock('streak3'); if(P.streak>=7)unlock('streak7'); toast('🔥','Day '+P.streak+' streak!'); }
+    var gap=P.lastDay?daysBetween(P.lastDay,t):0, missed=gap-1, thawed=0;
+    if(gap===1){ P.streak++; }
+    else if(missed>0 && missed<=(P.freezes||0)){ P.freezes-=missed; thawed=missed; P.streak++; }
+    else { P.streak=1; }
+    P.lastDay=t;
+    var earned=false;
+    if(P.streak%7===0 && (P.freezes||0)<FREEZE_MAX){ P.freezes=(P.freezes||0)+1; earned=true; }
+    renderHUD();
+    if(P.streak>=3)unlock('streak3'); if(P.streak>=7)unlock('streak7');
+    if(thawed) toast('🧊', (thawed===1?'Streak freeze used':thawed+' streak freezes used')+' — your '+P.streak+'-day streak is safe.');
+    toast('🔥','Day '+P.streak+' streak!'+(earned?' 🧊 +1 freeze':'')); }
 
   var resCtx=null;
   function showResult(r){ resCtx=r; $('resEm').textContent=r.em; $('resTitle').textContent=r.title; if(r.bodyHtml){ $('resBody').innerHTML=r.bodyHtml; } else { $('resBody').textContent=r.body||''; }
@@ -1163,14 +1181,24 @@
       +'<span class="lockic">'+(owned?(on?IC('check','ic-sm'):''):IC('lock','ic-sm'))+'</span><div class="tn">'+t.name+'</div><div class="tc">'+(owned?(on?'Equipped':'Tap to equip'):('<span class="ico" style="vertical-align:-3px">'+IC('coins','ic-sm')+'</span> '+t.cost))+'</div></div>'; }).join('');
     $('themeGrid').querySelectorAll('[data-theme]').forEach(function(el){ el.addEventListener('click',function(){ buyOrEquipTheme(el.dataset.theme); }); });
     $('pwShop').innerHTML=PW.map(function(p){ return '<div class="rows"><div style="display:flex;align-items:center;gap:10px;"><span class="pwico">'+IC(p[1])+'</span><b>'+p[2]+'</b> <span style="color:var(--muted)">×'+(P.powers[p[0]]||0)+'</span></div><button class="iconbtn" style="width:auto; padding:0 14px;" data-buy="'+p[0]+'">'+IC('coins','ic-sm')+' '+PW_COST[p[0]]+'</button></div>'; }).join('');
+    renderFreezeShop();
     $('pwShop').querySelectorAll('[data-buy]').forEach(function(b){ b.addEventListener('click',function(){ var id=b.dataset.buy; if(P.coins<PW_COST[id]){ toast(IC('coins'),'Not enough coins'); return; } P.coins-=PW_COST[id]; P.powers[id]=(P.powers[id]||0)+1; Sound.coin(); toast(IC(PW.filter(function(x){return x[0]===id;})[0][1]),'+1 '+PW.filter(function(x){return x[0]===id;})[0][2]); renderHUD(); renderShop(); save(); }); }); }
+  function renderFreezeShop(){ var n=P.freezes||0, full=(n>=FREEZE_MAX);
+    $('freezeShop').innerHTML='<div class="rows"><div style="display:flex;align-items:center;gap:10px;">'
+      +'<span class="pwico">🧊</span><b>Streak freeze</b> <span style="color:var(--muted)">×'+n+'</span></div>'
+      +(full?'<span style="color:var(--muted);font-weight:800;font-size:13px;">Max '+FREEZE_MAX+'</span>'
+            :'<button class="iconbtn" style="width:auto; padding:0 14px;" data-buyfreeze="1">'+IC('coins','ic-sm')+' '+FREEZE_COST+'</button>')
+      +'</div>';
+    var b=$('freezeShop').querySelector('[data-buyfreeze]'); if(!b)return;
+    b.addEventListener('click',function(){ if(P.coins<FREEZE_COST){ toast(IC('coins'),'Not enough coins'); return; }
+      P.coins-=FREEZE_COST; P.freezes=(P.freezes||0)+1; Sound.coin(); toast('🧊','+1 streak freeze'); renderHUD(); renderShop(); save(); }); }
   function buyOrEquipTheme(id){ var t=THEMES[id]; if(P.themesOwned.indexOf(id)<0){ if(P.coins<t.cost){ toast('🪙','Need '+t.cost+' coins'); return; } P.coins-=t.cost; P.themesOwned.push(id); Sound.coin(); confetti(); unlock('themer'); toast('🎨','Unlocked '+t.name+'!'); }
     P.theme=id; applyTheme(id); renderHUD(); renderShop(); save(); }
 
   /* ---- profile ---- */
   function titleFor(l){ return l>=15?'Legend':l>=10?'Master':l>=6?'Pro':l>=3?'Challenger':'Rookie'; }
   function renderProfile(){ $('pfAv').textContent=P.avatar; $('pfName').textContent=P.name||'Player'; $('pfTitle').textContent=titleFor(P.level)+' · Lv '+P.level;
-    var s=P.stats; var g=[['Games',s.games],['Wins',s.wins],['Words',s.words],['Best solo',s.bestSolo],['Best chain',s.bestChain],['🔥 Streak',P.streak]];
+    var s=P.stats; var g=[['Games',s.games],['Wins',s.wins],['Words',s.words],['Best solo',s.bestSolo],['Best chain',s.bestChain],['🔥 Streak',P.streak],['🧊 Freezes',P.freezes||0]];
     $('pfStats').innerHTML=g.map(function(x){return '<div class="stat"><div class="v">'+x[1]+'</div><div class="k">'+x[0]+'</div></div>';}).join('');
     var got=0; $('pfAch').innerHTML=ACH.map(function(a){ var h=!!P.ach[a.id]; if(h)got++; return '<div class="ach '+(h?'got':'')+'"><div class="ico">'+a.ic+'</div><div><div class="t">'+a.t+'</div><div class="d">'+a.d+'</div></div><div class="lk">'+(h?'✅':'🔒')+'</div></div>'; }).join('');
     $('pfAchCount').textContent=got+' of '+ACH.length+' unlocked';
