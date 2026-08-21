@@ -1176,7 +1176,8 @@
   function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'Daily done — streak safe. Come back tomorrow.':'New Daily Challenge available';
     var oc=document.querySelector('.mode[data-mode="online"]');
     if(oc){ var go=oc.querySelector('.go'); if(go) go.innerHTML=IC('chevron');
-      if(serverUrl()){ oc.classList.remove('locked'); var tg=oc.querySelector('.tag'); if(tg){ tg.textContent='LIVE'; tg.className='tag hot'; } var pp=oc.querySelector('p'); if(pp) pp.textContent='Create a room & invite a friend — real-time!'; }
+      if(serverUrl()){ oc.classList.remove('locked'); markOnlineCard();
+        if(ONLINE_HEALTH===null) probeOnline(function(){ markOnlineCard(); }); }
       else { oc.classList.add('locked'); var tg2=oc.querySelector('.tag'); if(tg2){ tg2.textContent='SOON'; tg2.className='tag soon'; } } }
   }
 
@@ -1191,6 +1192,39 @@
   var socket=null, O=null, ONLINE=false, oTimer=null, myUid=null, typingT=null;
   function serverUrl(){ return (window.WORDSWAP_CONFIG&&window.WORDSWAP_CONFIG.GAME_SERVER_URL)||''; }
   function myUidGet(){ if(!myUid){ myUid=(USER&&USER.id)||localStorage.getItem('ws_uid'); if(!myUid){ myUid='g_'+Math.random().toString(36).slice(2,12); try{localStorage.setItem('ws_uid',myUid);}catch(e){} } } return myUid; }
+  /* Render answers a suspended service with a 503 page carrying no CORS headers,
+     so the fetch rejects exactly as it would for a server that is merely asleep.
+     What separates them is *how fast* it rejects: a suspended or erroring host
+     replies at once, while a sleeping free instance holds the connection open for
+     the ~30s it takes to boot, so its failure only arrives on our timeout.
+     (Reading the response instead does not work — the browser blocks the opaque
+     body, so a no-cors probe cannot be trusted.) */
+  var ONLINE_HEALTH=null;   // 'ok' | 'down' | 'offline' | 'unreachable' | null = not probed
+  var OFFLINE_MSG='Online is temporarily offline — the game server is down, not waking up. Solo vs AI and Pass & Play still work.';
+  var NONET_MSG='You appear to be offline — check your connection and try again.';
+  function probeOnline(cb){
+    function settle(v){ ONLINE_HEALTH=v; cb(v); }
+    var url=serverUrl(); if(!url){ settle('unreachable'); return; }
+    if(navigator.onLine===false){ settle('offline'); return; }
+    var t0=Date.now(), c=new AbortController(), timer=setTimeout(function(){ c.abort(); },9000);
+    fetch(url+'/health',{ cache:'no-store', signal:c.signal }).then(
+      function(r){ clearTimeout(timer); settle(r.ok?'ok':'down'); },
+      function(){ clearTimeout(timer);
+        if(navigator.onLine===false){ settle('offline'); return; }
+        settle((Date.now()-t0)<2500 ? 'down' : 'unreachable'); });
+  }
+  /* The card must not advertise LIVE while the server is down. */
+  function markOnlineCard(){ var oc=document.querySelector('.mode[data-mode="online"]'); if(!oc||!serverUrl())return;
+    var tg=oc.querySelector('.tag'), pp=oc.querySelector('p'); var down=(ONLINE_HEALTH==='down');
+    if(tg){ tg.textContent=down?'OFFLINE':'LIVE'; tg.className=down?'tag soon':'tag hot'; }
+    if(pp) pp.textContent=down?'Server is down right now — try Solo vs AI or Pass & Play.'
+                              :'Create a room & invite a friend — real-time!'; }
+  /* Immediate best guess, then the accurate line once the probe lands. */
+  function showOnlineErr(e){ var m=e&&e.message;
+    if(m==='no_server'||m==='no_io'){ $('onlineMsg').textContent=onlineErrText(e); return; }
+    $('onlineMsg').textContent='Checking the server…';
+    probeOnline(function(st){ markOnlineCard();
+      $('onlineMsg').textContent=(st==='down')?OFFLINE_MSG:(st==='offline')?NONET_MSG:onlineErrText(e); }); }
   function onlineErrText(e){ var m=e&&e.message; if(m==='no_server')return 'Online server not set up yet.'; if(m==='no_io')return 'Could not load the game client.'; return 'Could not reach the server (it may be waking up — wait ~30s and retry).'; }
   function joinErrText(res){ var e=res&&res.error; return e==='not_found'?'Room not found — check the code.':e==='full'?'That room is full.':e==='in_progress'?'That match already started.':'Could not join. Try again.'; }
   function inviteLink(code){ return location.origin+location.pathname+'?room='+code; }
@@ -1214,10 +1248,14 @@
     socket.on('gameover', function(r){ onlineGameOver(r); });
   }
 
-  function openOnline(){ document.body.dataset.gm='online'; $('onlineMsg').textContent=''; $('joinCode').value=''; syncSecs(); go('online'); }
-  function createRoom(){ $('onlineMsg').textContent=''; $('createRoomBtn').textContent='Connecting…'; ensureSocket(function(err){ $('createRoomBtn').textContent='➕ Create a Room'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
+  function openOnline(){ document.body.dataset.gm='online'; $('onlineMsg').textContent=''; $('joinCode').value=''; syncSecs(); go('online');
+    probeOnline(function(st){ markOnlineCard();
+      if(!$('online').classList.contains('active')) return;
+      if(st==='down') $('onlineMsg').textContent=OFFLINE_MSG;
+      else if(st==='offline') $('onlineMsg').textContent=NONET_MSG; }); }
+  function createRoom(){ $('onlineMsg').textContent=''; $('createRoomBtn').textContent='Connecting…'; ensureSocket(function(err){ $('createRoomBtn').textContent='➕ Create a Room'; if(err){ showOnlineErr(err); return; }
     socket.emit('create',{userId:myUidGet(),name:P.name||'You',avatar:P.avatar,len:sel.olen,diff:sel.odiff,secs:turnSecs()}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:true,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent='Could not create room. Try again.'; }); }); }
-  function joinRoomCode(code){ code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); if(code.length<4){ $('onlineMsg').textContent='Enter the room code.'; return; } $('onlineMsg').textContent=''; $('joinRoomBtn').textContent='…'; ensureSocket(function(err){ $('joinRoomBtn').textContent='Join'; if(err){ $('onlineMsg').textContent=onlineErrText(err); return; }
+  function joinRoomCode(code){ code=(code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); if(code.length<4){ $('onlineMsg').textContent='Enter the room code.'; return; } $('onlineMsg').textContent=''; $('joinRoomBtn').textContent='…'; ensureSocket(function(err){ $('joinRoomBtn').textContent='Join'; if(err){ showOnlineErr(err); return; }
     socket.emit('join',{code:code,userId:myUidGet(),name:P.name||'You',avatar:P.avatar}, function(res){ if(res&&res.ok){ O={code:res.code,you:res.you,host:false,players:[]}; openLobby(res.code); } else $('onlineMsg').textContent=joinErrText(res); }); }); }
   function openLobby(code){ O=O||{}; O.code=code; go('lobby'); $('roomCode').textContent=code; renderQR(code); renderLobby({code:code,players:(O.players||[]),hostUserId:O.hostUserId}); }
   function renderQR(code){ var box=$('qrBox'); box.innerHTML=''; try{ if(window.qrcode){ var qr=window.qrcode(0,'M'); qr.addData(inviteLink(code)); qr.make(); box.innerHTML=qr.createImgTag(4,8); } }catch(e){ box.innerHTML=''; } }
