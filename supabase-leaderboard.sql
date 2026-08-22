@@ -1,20 +1,19 @@
 -- ============================================================
 --  WordSwap — leaderboard migration
 --
---  RUN THE TWO STEPS AS SEPARATE QUERIES.
---  The Supabase SQL editor runs a whole script in one transaction,
---  so one failing statement rolls back everything before it. Step 1
---  is what the app needs; step 2 is only cleanup. Keeping them apart
---  means a problem in the cleanup cannot undo the columns.
+--  Nothing here reads auth.users. The dashboard role has no
+--  permission on that table ("permission denied for table users"),
+--  and an earlier version of this file depended on it twice.
 --
---  Every id comparison is cast to text so it works whether the
---  columns are uuid or text — that mismatch is what rolled back the
---  first attempt.
+--  RUN EACH STEP AS ITS OWN QUERY. The Supabase SQL editor runs a
+--  script as one transaction, so a later failure rolls back what
+--  came before. Step 1 is all the app actually needs.
 -- ============================================================
 
 
 -- ============================================================
---  STEP 1 — columns, indexes, trigger.  Run this on its own.
+--  STEP 1 — REQUIRED. Columns and indexes. Run this alone.
+--  No auth schema, no triggers: this cannot hit a permission wall.
 -- ============================================================
 
 alter table public.profiles
@@ -23,14 +22,6 @@ alter table public.profiles
   add column if not exists freezes      int     not null default 1,
   add column if not exists country      text;
 
--- Anyone already signed up with a real identity belongs on the boards.
-update public.profiles p
-set registered = not coalesce(u.is_anonymous, false)
-from auth.users u
-where u.id::text = p.id::text;
-
--- The global board sorts by rank_points; the local board filters by
--- country first, so that index needs country leading.
 create index if not exists profiles_rank_idx
   on public.profiles (rank_points desc) where registered;
 
@@ -40,14 +31,27 @@ create index if not exists profiles_country_rank_idx
 create index if not exists daily_scores_day_score_idx
   on public.daily_scores (day, score desc);
 
--- Let the database decide who counts as registered, not the client:
--- a client can be edited, this cannot.
+-- Existing rows start at registered = false, so the boards will look
+-- sparse for a moment. The app sends `registered` on every save, so a
+-- real player reappears the next time they open it. Nothing is lost —
+-- their rank_points and best scores are already in the row.
+
+
+-- ============================================================
+--  STEP 2 — OPTIONAL. Stop a modified client claiming to be
+--  registered. Run separately; if it fails, skip it. Everything
+--  still works, it is just the client being trusted on this one
+--  field rather than the database.
+-- ============================================================
+
+-- Reads the caller's own token instead of auth.users. A client cannot
+-- forge its token, so this is enforcement, not a hint.
+-- Note: a write with no token at all — a dashboard edit, or the service
+-- role — has no is_anonymous claim and is treated as registered.
 create or replace function public.enforce_registered()
 returns trigger language plpgsql security definer as $$
 begin
-  select not coalesce(u.is_anonymous, false) into new.registered
-  from auth.users u where u.id::text = new.id::text;
-  new.registered := coalesce(new.registered, false);
+  new.registered := not coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false);
   return new;
 end $$;
 
@@ -58,26 +62,25 @@ create trigger profiles_registered
 
 
 -- ============================================================
---  STEP 2 — cleanup.  Run separately, AFTER step 1 succeeds.
---  Anonymous accounts are created silently for every visitor, so
---  they pile onto the boards with 0 scores.
+--  STEP 3 — OPTIONAL, and better left for later. Physically remove
+--  scores belonging to accounts that are not registered.
+--
+--  The boards already filter these out, so this is housekeeping, not
+--  a fix. Wait until real players have opened the app again after
+--  step 1 — until they do, their profile still says registered=false
+--  and this would delete their scores along with the junk.
 -- ============================================================
 
--- 2a. Look at what would go, first. Run this alone and read it.
-select ds.day, ds.score, p.username, ds.user_id
+-- 3a. Look first. Run this alone and read it.
+select ds.day, ds.score, p.username, p.registered
 from public.daily_scores ds
-join auth.users u on u.id::text = ds.user_id::text
 left join public.profiles p on p.id::text = ds.user_id::text
-where u.is_anonymous
+where p.id is null or not p.registered
 order by ds.day desc, ds.score desc;
 
--- 2b. If that list looks right, remove those scores.
+-- 3b. Only if that list is all junk.
 delete from public.daily_scores ds
-using auth.users u
-where ds.user_id::text = u.id::text and u.is_anonymous;
-
--- 2c. And their profile rows. Guests keep playing fine — their
---     progress lives on the device and is pushed once they register.
-delete from public.profiles p
-using auth.users u
-where p.id::text = u.id::text and u.is_anonymous;
+where not exists (
+  select 1 from public.profiles p
+  where p.id::text = ds.user_id::text and p.registered
+);
