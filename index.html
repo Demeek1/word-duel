@@ -894,6 +894,7 @@
         if(r.freezes!=null) P.freezes=Math.min(FREEZE_MAX,mx(P.freezes,r.freezes));
         try{localStorage.setItem('wordswap2',JSON.stringify(P));}catch(e){}
         pushProfile();   // the merge is the new truth, so the next device starts from it
+        refreshRankCard();
         renderHUD(); if($('profile') && $('profile').classList.contains('active')) renderProfile();
       } else {
         pushProfile(); // new account -> seed cloud from local
@@ -938,10 +939,10 @@
   }
 
   /* auth */
-  function afterAuth(){ updateAccountUI(); pullMerge(); if(USER && !USER.is_anonymous) toast('☁️','Signed in — synced everywhere'); if($('board').classList.contains('active')) loadBoard(curTab); }
+  function afterAuth(){ updateAccountUI(); pullMerge(); refreshRankCard(); if(USER && !USER.is_anonymous) toast('☁️','Signed in — synced everywhere'); if($('board').classList.contains('active')) loadBoard(curTab); }
   if(supa){
     supa.auth.getSession().then(function(res){ USER=(res.data&&res.data.session)?res.data.session.user:null;
-      if(USER){ updateAccountUI(); pullMerge(); }
+      if(USER){ updateAccountUI(); pullMerge(); refreshRankCard(); }
       else { // no session yet -> silently create a persistent device account
         supa.auth.signInAnonymously().then(function(r){ if(r&&r.error){ updateAccountUI(); } },function(){ updateAccountUI(); });
       }
