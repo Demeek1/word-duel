@@ -193,6 +193,19 @@
   .result-hero{ text-align:center; margin:6px 0 4px; }
   .result-hero .em{ font-size:70px; animation:bob 1.3s ease infinite; }
   .result-hero h2{ font-size:28px; margin-top:6px; text-shadow:0 3px 12px rgba(0,0,0,.3); }
+  /* Meta strip inside a mode card, and the rank card above them. */
+  .mode .meta{ display:flex; gap:15px; margin-top:9px; }
+  .mode .meta .mv{ font-weight:900; font-size:12.5px; line-height:1.2; white-space:nowrap; }
+  .mode .meta .mk{ font-size:9px; color:var(--muted); font-weight:800; text-transform:uppercase;
+    letter-spacing:.5px; margin-top:1px; white-space:nowrap; }
+  .rankcard{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;
+    padding:13px 15px; border-radius:18px; margin-bottom:12px; cursor:pointer; text-align:left;
+    background:linear-gradient(135deg,var(--p1),var(--p2)); border:1px solid transparent; color:#fff;
+    box-shadow:0 10px 24px rgba(0,0,0,.26); }
+  .rankcard .rc-k{ font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; opacity:.8; }
+  .rankcard .rc-v{ font-size:20px; font-weight:900; line-height:1.15; }
+  .rankcard .rc-r{ display:flex; gap:14px; text-align:center; }
+  .rankcard .rc-n{ font-size:17px; font-weight:900; line-height:1.15; }
   .statgrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
   .statgrid.c3{ grid-template-columns:repeat(3,1fr); }
   .stat{ background:rgba(255,255,255,.09); border:1px solid var(--glass-brd); border-radius:16px; padding:13px 10px; text-align:center; }
@@ -327,6 +340,7 @@
   .mode .ic-ai{ background:linear-gradient(140deg,#8b7bff,#a44dff)!important; }
   .mode .ic-duel{ background:linear-gradient(140deg,#ff6a97,#ff9a5a)!important; }
   .mode .ic-online{ background:linear-gradient(140deg,#4cc9f0,#5b8cff)!important; }
+  .mode .ic-daily{ background:linear-gradient(140deg,#25e0c0,#4cc9f0)!important; }
   .mode .go{ color:var(--muted); } .mode .go .ic-svg{ width:22px; height:22px; }
 
   /* practice + power-ups */
@@ -456,16 +470,35 @@
 
     <div class="brand"><div class="logo"><b>S</b><b>W</b><b>A</b><b>P</b></div><h1>WordSwap</h1><p>Change one letter. Keep the word alive.</p></div>
 
+    <button class="rankcard" id="rankCard">
+      <div><div class="rc-k">Your ranking</div><div class="rc-v" id="rcPts">0 pts</div></div>
+      <div class="rc-r">
+        <div><div class="rc-n" id="rcGlobal">—</div><div class="rc-k">Global</div></div>
+        <div><div class="rc-n" id="rcLocal">—</div><div class="rc-k" id="rcCC">Local</div></div>
+      </div>
+    </button>
+
     <div class="modes">
-      <button class="mode glass" data-mode="ai"><div class="ic ic-ai" data-ic="bot"></div><div><h3>Solo vs AI</h3><p>Practice anytime against 4 AI levels.</p></div><div class="go" data-ic="chevron"></div></button>
-      <button class="mode glass" data-mode="duel"><div class="ic ic-duel" data-ic="users"></div><div><h3>Pass &amp; Play <span class="tag hot">2P</span></h3><p>Two players share one phone. Great for family.</p></div><div class="go" data-ic="chevron"></div></button>
-      <button class="mode glass locked" data-mode="online"><div class="ic ic-online" data-ic="globe"></div><div><h3>Online Friend Match <span class="tag soon">SOON</span></h3><p>Room code &amp; invite link. Real-time — building next.</p></div><div class="go" data-ic="chevron"></div></button>
+      <button class="mode glass" data-pmode="daily"><div class="ic ic-daily" data-ic="calendar"></div><div><h3>Daily Challenge</h3><p>One word. Same for everyone, everywhere.</p>
+        <div class="meta"><div><div class="mv" id="mDailyNo">#0</div><div class="mk">Puzzle</div></div>
+          <div><div class="mv" id="mDailyStreak">0</div><div class="mk">Streak</div></div>
+          <div><div class="mv" id="mDailyLeft">—</div><div class="mk">Resets in</div></div></div></div><div class="go" data-ic="chevron"></div></button>
+      <button class="mode glass" data-mode="ai"><div class="ic ic-ai" data-ic="bot"></div><div><h3>Solo vs AI</h3><p>Practice anytime against 4 AI levels.</p>
+        <div class="meta"><div><div class="mv">4</div><div class="mk">Levels</div></div>
+          <div><div class="mv" id="mAiWins">0</div><div class="mk">Wins</div></div>
+          <div><div class="mv">+25</div><div class="mk">Win pts</div></div></div></div><div class="go" data-ic="chevron"></div></button>
+      <button class="mode glass" data-mode="duel"><div class="ic ic-duel" data-ic="users"></div><div><h3>Pass &amp; Play <span class="tag hot">2P</span></h3><p>Two players share one phone. Great for family.</p>
+        <div class="meta"><div><div class="mv">2</div><div class="mk">Players</div></div>
+          <div><div class="mv">To 3</div><div class="mk">Match</div></div>
+          <div><div class="mv">+12</div><div class="mk">Round pts</div></div></div></div><div class="go" data-ic="chevron"></div></button>
+      <button class="mode glass locked" data-mode="online"><div class="ic ic-online" data-ic="globe"></div><div><h3>Online Friend Match <span class="tag soon">SOON</span></h3><p>Room code &amp; invite link. Real-time — building next.</p>
+        <div class="meta"><div><div class="mv">1v1</div><div class="mk">Players</div></div>
+          <div><div class="mv" id="mOnlineState">Checking</div><div class="mk">Server</div></div>
+          <div><div class="mv">+30</div><div class="mk">Win pts</div></div></div></div><div class="go" data-ic="chevron"></div></button>
     </div>
     <div class="seg" id="practiceRow" style="margin-top:12px;">
       <button data-pmode="solo"><span class="ico" data-ic="zap"></span> Endless Solo</button>
-      <button data-pmode="daily"><span class="ico" data-ic="calendar"></span> Daily</button>
     </div>
-    <div class="foot" id="dailyTip"></div>
   </section>
 
   <!-- SETUP -->
@@ -1108,7 +1141,7 @@
 
   $('practiceRow').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ Sound.resume(); sel.mode=b.dataset.pmode; openSetup(); }); });
 
-  document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); var mode=m.dataset.mode;
+  document.querySelectorAll('.mode').forEach(function(m){ m.addEventListener('click',function(){ Sound.resume(); var mode=m.dataset.mode||m.dataset.pmode;
     if(mode==='online'){ if(!serverUrl()){ modal('<div class="em">🌐</div><h3>Online is almost ready</h3><p>The game server isn\'t connected yet. Once it\'s deployed to Render and its URL is in <b>config.js</b>, this unlocks real-time friend matches. For now, try <b>Solo vs AI</b> or <b>Pass &amp; Play</b>.</p><button class="btn" data-close>Got it</button>'); return; } Sound.resume(); openOnline(); return; }
     sel.mode=mode; openSetup(); }); });
   function openSetup(){ var t=$('setupTitle'),s=$('setupSub'); document.body.dataset.gm=sel.mode; $('duelFields').style.display='none'; $('partyFields').style.display='none'; $('matchWrap').style.display='none'; $('aiWrap').style.display='none';
@@ -1391,7 +1424,34 @@
     $('obName').value=P.name||''; $('obStart').textContent=edit?'Save':'Let\'s play ▶'; go('onboard'); }
   $('obStart').addEventListener('click',function(){ var n=$('obName').value.trim(); if(!n){ toast('✏️','Enter a name'); return; } P.name=n; save(); renderHUD(); home(); });
 
-  function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today(); $('dailyTip').textContent=done?'Daily done — streak safe. Come back tomorrow.':'New Daily Challenge available';
+  /* Time to the next UTC midnight, when the Daily word changes for everybody. */
+  function untilReset(){ var n=new Date();
+    var ms=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+1)-n.getTime();
+    var h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000);
+    return h>0?(h+'h '+m+'m'):(m+'m'); }
+
+  /* Rank is a count, not a stored column: how many registered players sit above
+     this one. Silent about it when the query fails, because on a database without
+     rank_points there is no rank to state and a wrong number is worse than none. */
+  function refreshRankCard(){
+    $('rcPts').textContent=(P.rankPoints||0)+' pts';
+    var cc=myCountry(); $('rcCC').textContent=cc||'Local';
+    if(!supa||!USER||!cloudOn()) return;
+    function place(el,filterCountry){
+      var q=supa.from('profiles').select('id',{count:'exact',head:true})
+        .eq('registered',true).gt('rank_points',P.rankPoints||0);
+      if(filterCountry && cc) q=q.eq('country',cc);
+      q.then(function(r){ if(!r||r.error||r.count==null) return; $(el).textContent='#'+(r.count+1); },function(){});
+    }
+    place('rcGlobal',false); place('rcLocal',true);
+  }
+
+  function refreshHome(){ renderHUD(); var done=P.dailyDoneDay===today();
+    $('mDailyNo').textContent='#'+dayNum();
+    $('mDailyStreak').textContent=P.streak||0;
+    $('mDailyLeft').textContent=done?untilReset():'Ready now';
+    $('mAiWins').textContent=P.stats.wins||0;
+    refreshRankCard();
     var oc=document.querySelector('.mode[data-mode="online"]');
     if(oc){ var go=oc.querySelector('.go'); if(go) go.innerHTML=IC('chevron');
       if(serverUrl()){ oc.classList.remove('locked'); applyOnlineStatus();
@@ -1439,6 +1499,7 @@
   }
   /* Nothing may advertise LIVE, or promise a 30s wake-up, while the server is down. */
   function applyOnlineStatus(){ var down=(ONLINE_HEALTH==='down');
+    var ms=$('mOnlineState'); if(ms) ms.textContent = down?'Offline' : (ONLINE_HEALTH==='ok'?'Live':'Checking');
     var wh=$('wakeHint'); if(wh) wh.style.display=down?'none':'';
     var oc=document.querySelector('.mode[data-mode="online"]'); if(!oc||!serverUrl())return;
     var tg=oc.querySelector('.tag'), pp=oc.querySelector('p');
@@ -1534,6 +1595,7 @@
   // wiring
   (function(){ var R=['👍','😂','🔥','😱','👏','❤️']; $('reactbar').innerHTML=R.map(function(e){return '<button data-r="'+e+'">'+e+'</button>';}).join('');
     $('reactbar').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ if(socket&&O){ socket.emit('react',{emoji:b.dataset.r}); floatReaction(b.dataset.r); } }); }); })();
+  $('rankCard').addEventListener('click',function(){ Sound.resume(); openBoard(); go('board'); });
   $('createRoomBtn').addEventListener('click',createRoom);
   $('joinRoomBtn').addEventListener('click',function(){ joinRoomCode($('joinCode').value); });
   $('joinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); joinRoomCode($('joinCode').value); } });
