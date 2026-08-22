@@ -194,8 +194,19 @@
   .result-hero .em{ font-size:70px; animation:bob 1.3s ease infinite; }
   .result-hero h2{ font-size:28px; margin-top:6px; text-shadow:0 3px 12px rgba(0,0,0,.3); }
   .statgrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
-  .stat{ background:rgba(255,255,255,.09); border:1px solid var(--glass-brd); border-radius:16px; padding:12px; text-align:center; }
-  .stat .v{ font-size:24px; font-weight:900; } .stat .k{ font-size:10px; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.6px; margin-top:2px; }
+  .statgrid.c3{ grid-template-columns:repeat(3,1fr); }
+  .stat{ background:rgba(255,255,255,.09); border:1px solid var(--glass-brd); border-radius:16px; padding:13px 10px; text-align:center; }
+  .stat .sic{ width:30px; height:30px; margin:0 auto 7px; border-radius:10px; display:flex; align-items:center;
+    justify-content:center; font-size:15px; background:rgba(255,255,255,.14); border:1px solid var(--glass-brd); }
+  .stat .v{ font-size:24px; font-weight:900; line-height:1.1; } .stat .k{ font-size:10px; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.6px; margin-top:3px; }
+  /* Profile hero: banner, overlapping avatar, name - the shape the reference screens use. */
+  .hero{ position:relative; text-align:center; margin-bottom:14px; }
+  .hero .band{ height:72px; border-radius:18px; background:linear-gradient(135deg,var(--p1),var(--p2)); opacity:.9; }
+  .hero .hav{ width:76px; height:76px; font-size:40px; border-radius:24px; margin:-40px auto 0; position:relative;
+    display:flex; align-items:center; justify-content:center; background:var(--glass); border:3px solid rgba(255,255,255,.22);
+    box-shadow:0 12px 26px rgba(0,0,0,.32); }
+  .hero .hnm{ font-size:22px; font-weight:900; margin-top:9px; }
+  .hero .htt{ color:var(--muted); font-weight:800; font-size:13px; }
   .reward{ display:flex; justify-content:center; gap:14px; margin-top:12px; }
   .reward .r{ display:flex; align-items:center; gap:6px; font-weight:900; font-size:16px; }
 
@@ -283,7 +294,8 @@
   body.kb #game .answerRow{ margin-top:6px; }
   body.kb #game .msg{ margin-top:5px; }
 
-  .rows{ display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.1); }
+  .rows{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 14px;
+    border-radius:16px; background:rgba(255,255,255,.07); border:1px solid var(--glass-brd); margin-bottom:8px; }
   .rows:last-child{ border-bottom:none; }
   .switch{ width:52px; height:30px; border-radius:20px; background:rgba(255,255,255,.2); position:relative; cursor:pointer; transition:background .2s; }
   .switch.on{ background:var(--good); } .switch .k{ position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; transition:left .2s; }
@@ -561,11 +573,14 @@
   <section id="profile" class="screen">
     <button class="backbtn" data-home>‹ Back</button>
     <div class="glass panel">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div class="avatar" id="pfAv" style="width:64px; height:64px; font-size:34px; border-radius:20px;">😀</div>
-        <div><div style="font-size:22px; font-weight:900" id="pfName">Player</div><div style="color:var(--muted); font-weight:800" id="pfTitle">Rookie</div></div>
+      <div class="hero">
+        <div class="band"></div>
+        <div class="hav" id="pfAv">😀</div>
+        <div class="hnm" id="pfName">Player</div>
+        <div class="htt" id="pfTitle">Rookie</div>
       </div>
-      <div class="statgrid" id="pfStats" style="margin-top:16px;"></div>
+      <div class="statgrid c3" id="pfTop"></div>
+      <div class="statgrid" id="pfStats"></div>
       <h2 style="margin-top:18px; font-size:18px;">Badges</h2>
       <div class="sub" id="pfAchCount"></div>
       <div id="pfAch"></div>
@@ -641,7 +656,7 @@
     <div class="glass panel">
       <h2>Settings</h2>
       <div class="sub">Everything saves on this device.</div>
-      <div id="accountRow" style="padding:14px 4px; border-bottom:1px solid rgba(255,255,255,.1);"></div>
+      <div id="accountRow" class="rows" style="display:block;"></div>
       <div class="rows"><div><span class="ico" data-ic="bell"></span> Notifications</div><div class="switch" id="swNotif"><div class="k"></div></div></div>
       <div class="rows"><div>Sound effects</div><div class="switch" id="swSound"><div class="k"></div></div></div>
       <div class="rows"><div>Haptics (vibration)</div><div class="switch" id="swHaptic"><div class="k"></div></div></div>
@@ -942,11 +957,11 @@
   function updateAccountUI(){ var el=$('accountRow'); if(!el) return;
     if(!cloudOn()){ el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center;"><div>☁️ Online account<br><span style="color:var(--muted); font-size:12px">Not set up — see setup guide</span></div></div>'; return; }
     if(USER && !USER.is_anonymous){
-      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ '+(myEmail()||'Signed in')+'<br><span style="color:var(--good); font-size:12px">Synced across your devices</span></div><button class="iconbtn" id="btnSignOut" style="width:auto; padding:0 12px;">Sign out</button></div><button class="btn ghost" id="btnDelete" style="margin-top:8px; color:var(--bad);">Delete account</button>';
+      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>☁️ '+(myEmail()||'Signed in')+'<br><span style="color:var(--good); font-size:12px">Synced across your devices</span></div><button class="iconbtn" id="btnSignOut" style="width:auto; padding:0 12px;">Sign out</button></div><button class="btn ghost" id="btnDelete" style="margin-top:10px; padding:9px; font-size:13px; color:var(--bad);">Delete account</button>';
       var b=$('btnSignOut'); if(b)b.addEventListener('click',signOut);
       var d=$('btnDelete'); if(d)d.addEventListener('click',confirmDelete);
     } else if(USER){
-      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>👤 This phone’s account<br><span style="color:var(--good); font-size:12px">Signed in &amp; syncing</span></div><button class="iconbtn" id="btnConnect" style="width:auto; padding:0 12px;">Connect Google</button></div><div style="color:var(--muted); font-size:12px; margin-top:6px;">Connect Google to save your progress forever &amp; play on other phones.</div><button class="btn ghost" id="btnDelete" style="margin-top:8px; color:var(--bad);">Delete account</button>';
+      el.innerHTML='<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><div>👤 This phone’s account<br><span style="color:var(--good); font-size:12px">Signed in &amp; syncing</span></div><button class="iconbtn" id="btnConnect" style="width:auto; padding:0 12px;">Connect Google</button></div><div style="color:var(--muted); font-size:12px; margin-top:6px;">Connect Google to save your progress forever &amp; play on other phones.</div><button class="btn ghost" id="btnDelete" style="margin-top:10px; padding:9px; font-size:13px; color:var(--bad);">Delete account</button>';
       var c=$('btnConnect'); if(c)c.addEventListener('click',function(){ handleAuthPromise(authGoogle()); });
       var d2=$('btnDelete'); if(d2)d2.addEventListener('click',confirmDelete);
     } else {
@@ -1218,18 +1233,18 @@
     if(won){ P.stats.wins++; unlock('firstwin'); if(G.level==='hard')unlock('beathard'); if(G.level==='expert')unlock('beatexpert'); addXP(15); addCoins(5); bumpStreak(); }
     else { addXP(4); }
     save();
-    showResult({ em:won?'🏆':'🤖', title:won?'You beat the AI!':'The AI got you', body:reason, stats:[['Result',won?'WIN':'LOSS'],['AI',cap(G.level)],['Words',G.chain]], reward: won?[['🪙','+5'],['⭐','+15']]:[['⭐','+4']], mode:'ai' });
+    showResult({ em:won?'🏆':'🤖', title:won?'You beat the AI!':'The AI got you', body:reason, stats:[['Result',won?'WIN':'LOSS','🏆'],['AI',cap(G.level),'🤖'],['Words',G.chain,'🔤']], reward: won?[['🪙','+5'],['⭐','+15']]:[['⭐','+4']], mode:'ai' });
     if(won){ confetti(); Sound.big(); haptic([30,50,30]); } else { Sound.err(); haptic(200); } }
 
   function partyOut(){ G.alive[G.turn]=false; var liveIdx=[]; G.alive.forEach(function(a,i){ if(a)liveIdx.push(i); }); toast('💥',G.names[G.turn]+' is out!');
     if(liveIdx.length<=1){ var w=liveIdx[0]; P.stats.games++; addXP(15); addCoins(6); bumpStreak(); save();
-      showResult({ em:'🏆', title:(w!=null?G.names[w]:'Nobody')+' wins the party!', body:'Last player standing after '+G.chain+' words.', stats:[['Players',G.names.length],['Words played',G.chain]], reward:[['🪙','+6'],['⭐','+15']], mode:'party' }); confetti(); Sound.big(); return; }
+      showResult({ em:'🏆', title:(w!=null?G.names[w]:'Nobody')+' wins the party!', body:'Last player standing after '+G.chain+' words.', stats:[['Players',G.names.length,'👥'],['Words played',G.chain,'🔤']], reward:[['🪙','+6'],['⭐','+15']], mode:'party' }); confetti(); Sound.big(); return; }
     do{ G.turn=(G.turn+1)%G.names.length; }while(!G.alive[G.turn]); G.current=randWord(G.len); G.used=[G.current]; G.limit=G.diff.start; renderGame(); renderTiles(true); startTimer(); }
 
   function endDuelRound(winnerIdx,reason){ stopTimer(); addRank(12); G.scores[winnerIdx]++;
     if(G.scores[winnerIdx]>=G.target){ P.stats.games++; P.stats.wins++; if(G.names[winnerIdx]===(P.name||'You'))unlock('firstwin'); addXP(18); addCoins(5); bumpStreak(); save();
-      showResult({ em:'🏆', title:G.names[winnerIdx]+' wins the match!', body:reason, stats:[['Final',G.scores[0]+' – '+G.scores[1]],['Words',G.chain]], reward:[['🪙','+5'],['⭐','+18']], mode:'duel' }); confetti(); Sound.big(); haptic([30,50,30]); }
-    else { toast('🎉',G.names[winnerIdx]+' takes the round!'); showResult({ em:'⏱️', title:G.names[winnerIdx]+' wins the round', body:reason, stats:[['Score',G.scores[0]+' – '+G.scores[1]],['Round',G.roundNum]], reward:[], mode:'duel-continue' }); Sound.big(); }
+      showResult({ em:'🏆', title:G.names[winnerIdx]+' wins the match!', body:reason, stats:[['Final',G.scores[0]+' – '+G.scores[1],'🏆'],['Words',G.chain,'🔤']], reward:[['🪙','+5'],['⭐','+18']], mode:'duel' }); confetti(); Sound.big(); haptic([30,50,30]); }
+    else { toast('🎉',G.names[winnerIdx]+' takes the round!'); showResult({ em:'⏱️', title:G.names[winnerIdx]+' wins the round', body:reason, stats:[['Score',G.scores[0]+' – '+G.scores[1],'🎯'],['Round',G.roundNum,'🔗']], reward:[], mode:'duel-continue' }); Sound.big(); }
   }
   /* Derived from today() so the shared puzzle number can never drift from the word. */
   function dayNum(){ return daysBetween('2024-01-01', today()); }
@@ -1250,7 +1265,7 @@
     var coins=Math.max(1,Math.round(G.score/40)); addXP(8); addCoins(coins); if(G.chain>=25)unlock('chain25'); save();
     var bodyHtml = isDaily ? ('<div style="font-size:20px;line-height:1.35;word-break:break-word">'+gridSquares(G.pace)+'</div><div style="margin-top:6px;color:var(--muted)">Daily #'+dayNum()+' · spoiler-free to share · new word at midnight UTC</div>') : null;
     showResult({ em:best?'🥇':'⚡', title:best?'New personal best!':(isDaily?'Daily complete!':'Chain over!'), body:isDaily?null:('You chained '+G.chain+' words.'), bodyHtml:bodyHtml, share:isDaily?dailyShareText(G.chain,G.score,G.pace):null, board:isDaily,
-      stats:[['Score',G.score],['Chain',G.chain],['Best',Math.max(P.stats.bestSolo,G.score)],['Streak',P.streak]], reward:[['🪙','+'+coins],['⭐','+8']], mode:G.mode });
+      stats:[['Score',G.score,'⚡'],['Chain',G.chain,'🔗'],['Best',Math.max(P.stats.bestSolo,G.score),'🏆'],['Streak',P.streak,'🔥']], reward:[['🪙','+'+coins],['⭐','+8']], mode:G.mode });
     if(best){ confetti(); Sound.big(); haptic([30,50,30]); } else Sound.up(); }
 
   /* Freezes are spent automatically on the player's return: by the time they open
@@ -1269,10 +1284,16 @@
     if(thawed) toast('🧊', (thawed===1?'Streak freeze used':thawed+' streak freezes used')+' — your '+P.streak+'-day streak is safe.');
     toast('🔥','Day '+P.streak+' streak!'+(earned?' 🧊 +1 freeze':'')); }
 
+  /* One stat card everywhere: [label, value], with an optional third entry for the
+     icon chip. Shared so the result screen and the profile cannot drift apart. */
+  function statCards(list){ return (list||[]).map(function(x){
+    return '<div class="stat">'+(x[2]?'<div class="sic">'+x[2]+'</div>':'')
+      +'<div class="v">'+x[1]+'</div><div class="k">'+x[0]+'</div></div>'; }).join(''); }
+
   var resCtx=null;
   function showResult(r){ resCtx=r; $('resEm').textContent=r.em; $('resTitle').textContent=r.title; if(r.bodyHtml){ $('resBody').innerHTML=r.bodyHtml; } else { $('resBody').textContent=r.body||''; }
     $('shareBtn').innerHTML = r.share ? (IC('share')+' Share result') : (IC('share')+' Share');
-    $('resStats').innerHTML=(r.stats||[]).map(function(s){return '<div class="stat"><div class="v">'+s[1]+'</div><div class="k">'+s[0]+'</div></div>';}).join('');
+    $('resStats').innerHTML=statCards(r.stats||[]);
     $('resReward').innerHTML=(r.reward||[]).map(function(x){return '<div class="r">'+x[0]+' '+x[1]+'</div>';}).join('');
     $('resBoardBtn').style.display=r.board?'':'none';
     $('againBtn').textContent=r.mode==='duel-continue'?'Next round ▶':'Play again ▶'; go('result'); }
@@ -1323,8 +1344,11 @@
   /* ---- profile ---- */
   function titleFor(l){ return l>=15?'Legend':l>=10?'Master':l>=6?'Pro':l>=3?'Challenger':'Rookie'; }
   function renderProfile(){ $('pfAv').textContent=P.avatar; $('pfName').textContent=P.name||'Player'; $('pfTitle').textContent=titleFor(P.level)+' · Lv '+P.level;
-    var s=P.stats; var g=[['Games',s.games],['Wins',s.wins],['Words',s.words],['Best solo',s.bestSolo],['Best chain',s.bestChain],['🔥 Streak',P.streak],['🧊 Freezes',P.freezes||0],['🏅 Rank pts',P.rankPoints||0]];
-    $('pfStats').innerHTML=g.map(function(x){return '<div class="stat"><div class="v">'+x[1]+'</div><div class="k">'+x[0]+'</div></div>';}).join('');
+    var s=P.stats;
+    $('pfTop').innerHTML=statCards([['Rank pts',P.rankPoints||0,'🏅'],['Streak',P.streak,'🔥'],['Games',s.games,'🎮']]);
+    $('pfStats').innerHTML=statCards([['Wins',s.wins,'🏆'],['Words',s.words,'🔤'],
+      ['Best solo',s.bestSolo,'⚡'],['Best chain',s.bestChain,'🔗'],
+      ['Freezes',P.freezes||0,'🧊'],['Fastest',(s.fastest===99?'-':s.fastest+'s'),'⏱️']]);
     var got=0; $('pfAch').innerHTML=ACH.map(function(a){ var h=!!P.ach[a.id]; if(h)got++; return '<div class="ach '+(h?'got':'')+'"><div class="ico">'+a.ic+'</div><div><div class="t">'+a.t+'</div><div class="d">'+a.d+'</div></div><div class="lk">'+(h?'✅':'🔒')+'</div></div>'; }).join('');
     $('pfAchCount').textContent=got+' of '+ACH.length+' unlocked';
     var L=P.lead.slice(0,5); $('pfLead').innerHTML=L.length?L.map(function(r,i){return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>';}).join(''):'<div class="sub">Play Solo to set a score!</div>'; }
@@ -1501,7 +1525,7 @@
   function onlineGameOver(r){ stopODisplay(); ONLINE=false; $('reactbar').style.display='none'; var me=myUidGet(); var won=(r.winnerUserId===me);
     P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,r.chain||0); if(won){ P.stats.wins++; addXP(20); addCoins(8); bumpStreak(); unlock('firstwin'); } else { addXP(6); } save();
     var reason=r.reason==='left'?'Your opponent left.':(r.reason==='timeout'?'Time ran out.':''); resCtx=null;
-    showResult({ em:won?'🏆':'😔', title:won?'You win!':'You lost', body:reason+' Chain of '+(r.chain||0)+' words.', stats:[['Result',won?'WIN':'LOSS'],['Words',r.chain||0]], reward: won?[['🪙','+8'],['⭐','+20']]:[['⭐','+6']], mode:'online' });
+    showResult({ em:won?'🏆':'😔', title:won?'You win!':'You lost', body:reason+' Chain of '+(r.chain||0)+' words.', stats:[['Result',won?'WIN':'LOSS','🏆'],['Words',r.chain||0,'🔤']], reward: won?[['🪙','+8'],['⭐','+20']]:[['⭐','+6']], mode:'online' });
     if(won){ confetti(); Sound.big(); haptic([30,50,30]); } else { Sound.err(); haptic(200); } }
 
   function floatReaction(em){ var e=document.createElement('div'); e.className='rfloat'; e.textContent=em; e.style.left=(18+Math.random()*60)+'%'; e.style.bottom='140px'; $('reactfloat').appendChild(e); setTimeout(function(){e.remove();},1700); }
