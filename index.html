@@ -214,7 +214,24 @@
   .ach .lk{ margin-left:auto; font-size:17px; }
 
   .lead .row{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:14px; background:rgba(255,255,255,.07); border:1px solid var(--glass-brd); margin-bottom:6px; }
-  .lead .rank{ font-weight:900; color:var(--gold); width:22px; } .lead .nm{ font-weight:800; flex:1; } .lead .v{ font-weight:900; }
+  .lead .rank{ font-weight:900; color:var(--gold); width:22px; } .lead .nm{ font-weight:800; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .lead .v{ font-weight:900; }
+  /* Podium over a column-headed table. Colours come from the equipped theme, so
+     every theme in the shop keeps working rather than being overridden here. */
+  .podium{ display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:8px; align-items:end; margin:2px 0 14px; }
+  .pod{ text-align:center; padding:10px 6px 12px; border-radius:16px; background:rgba(255,255,255,.07); border:1px solid var(--glass-brd); min-width:0; }
+  .pod.p1{ background:linear-gradient(160deg,var(--p1),var(--p2)); border-color:transparent; padding-top:16px; box-shadow:0 10px 24px rgba(0,0,0,.28); }
+  .pod .pmed{ font-size:15px; line-height:1; }
+  .pod .pav{ font-size:30px; line-height:1.15; margin-top:2px; }
+  .pod .pnm{ font-weight:900; font-size:12px; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pod .ppt{ font-weight:900; font-size:12px; color:var(--gold); }
+  .pod.p1 .ppt{ color:#fff; }
+  .lead-head{ display:flex; align-items:center; gap:10px; padding:2px 13px 8px; color:var(--muted);
+    font-size:10px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; }
+  .lead-head .h-rank{ width:22px; } .lead-head .h-nm{ flex:1; }
+  .lead-head .h-v{ width:52px; text-align:right; } .lead-head .h-p{ width:48px; text-align:right; }
+  .lead .row .fl{ font-size:14px; line-height:1; }
+  .lead .row .v{ width:52px; text-align:right; }
+  .lead .row .pts{ width:48px; text-align:right; font-weight:900; color:var(--gold); }
 
   /* ---------- modal / toast ---------- */
   .backdrop{ position:fixed; inset:0; z-index:70; background:rgba(10,4,30,.6); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:24px; }
@@ -611,6 +628,7 @@
       <div class="sub" id="boardSub">Compete with players worldwide.</div>
       <div class="tabs" id="boardTabs">
         <button data-tab="global" class="on">Global</button>
+        <button data-tab="local" id="tabLocal">Local</button>
         <button data-tab="daily">Daily</button>
       </div>
       <div class="lead" id="boardList"><div class="sub">Loading…</div></div>
@@ -702,6 +720,41 @@
   /* A streak freeze covers one missed day. Capped so a hoard cannot make the
      streak meaningless — it should still be possible to lose one. */
   var FREEZE_COST=60, FREEZE_MAX=3;
+
+  /* Ranking points accrue from every finished game, so the board rewards playing
+     rather than one lucky solo run. Best-ever score still has its own column. */
+  function addRank(n){ n=Math.max(0,Math.round(n||0)); if(!n)return; P.rankPoints=(P.rankPoints||0)+n; }
+
+  /* Country for the local board. navigator.language says almost nothing about
+     where someone is - a Nigerian phone usually reports en-US - so the IANA time
+     zone is read first and only falls back to the locale. */
+  var TZ_COUNTRY={ 'Africa/Lagos':'NG','Africa/Abidjan':'CI','Africa/Accra':'GH','Africa/Nairobi':'KE',
+    'Africa/Johannesburg':'ZA','Africa/Cairo':'EG','Africa/Casablanca':'MA','Africa/Algiers':'DZ',
+    'Africa/Tunis':'TN','Africa/Dakar':'SN','Africa/Kampala':'UG','Africa/Dar_es_Salaam':'TZ',
+    'Africa/Addis_Ababa':'ET','Africa/Kinshasa':'CD','Africa/Douala':'CM','Africa/Harare':'ZW',
+    'Africa/Lusaka':'ZM','Africa/Luanda':'AO','Africa/Khartoum':'SD','Africa/Maputo':'MZ',
+    'Europe/London':'GB','Europe/Dublin':'IE','Europe/Paris':'FR','Europe/Berlin':'DE','Europe/Madrid':'ES',
+    'Europe/Rome':'IT','Europe/Amsterdam':'NL','Europe/Lisbon':'PT','Europe/Warsaw':'PL','Europe/Moscow':'RU',
+    'Europe/Istanbul':'TR','Europe/Stockholm':'SE','Europe/Oslo':'NO','Europe/Copenhagen':'DK',
+    'America/New_York':'US','America/Chicago':'US','America/Denver':'US','America/Los_Angeles':'US',
+    'America/Phoenix':'US','America/Anchorage':'US','America/Toronto':'CA','America/Vancouver':'CA',
+    'America/Mexico_City':'MX','America/Sao_Paulo':'BR','America/Bogota':'CO','America/Lima':'PE',
+    'America/Argentina/Buenos_Aires':'AR','America/Santiago':'CL','America/Jamaica':'JM',
+    'Asia/Kolkata':'IN','Asia/Calcutta':'IN','Asia/Karachi':'PK','Asia/Dhaka':'BD','Asia/Manila':'PH',
+    'Asia/Jakarta':'ID','Asia/Bangkok':'TH','Asia/Singapore':'SG','Asia/Kuala_Lumpur':'MY',
+    'Asia/Shanghai':'CN','Asia/Tokyo':'JP','Asia/Seoul':'KR','Asia/Hong_Kong':'HK','Asia/Taipei':'TW',
+    'Asia/Dubai':'AE','Asia/Riyadh':'SA','Asia/Qatar':'QA','Asia/Jerusalem':'IL','Asia/Tehran':'IR',
+    'Australia/Sydney':'AU','Australia/Melbourne':'AU','Australia/Perth':'AU','Pacific/Auckland':'NZ' };
+  function myCountry(){
+    if(P.countryPick) return P.countryPick;               // only a deliberate choice overrides detection
+    try{ var tz=Intl.DateTimeFormat().resolvedOptions().timeZone; if(TZ_COUNTRY[tz]) return TZ_COUNTRY[tz]; }catch(e){}
+    var l=(navigator.language||'').split('-'); 
+    return (l.length>1 ? l.pop() : '').toUpperCase().slice(0,2) || '';
+  }
+  /* ISO country code -> flag, by offsetting each letter into the regional indicators. */
+  function flagOf(cc){ cc=(cc||'').toUpperCase();
+    if(!/^[A-Z]{2}$/.test(cc)) return String.fromCodePoint(0x1F3F3);
+    return String.fromCodePoint(0x1F1E6+cc.charCodeAt(0)-65, 0x1F1E6+cc.charCodeAt(1)-65); }
   /* The floor scales with the pick, so a short clock is never born below it. */
   function minLimit(start){ return Math.max(5, Math.round(start*.5)); }
   function turnSecs(){ var n=+P.turnSecs; return TIMER_CHOICES.indexOf(n)>=0?n:DEFAULT_SECS; }
@@ -718,7 +771,7 @@
     jungle:{ name:'Jungle', cost:250, a:'#0b3d20', b:'#1b5e3a', c:'#57cc99', p1:'#38b000', p2:'#2d9e5a', acc:'#c7f9cc', gold:'#ffd166', part:'#c7f9cc' }
   };
 
-  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false, turnSecs:DEFAULT_SECS, freezes:1,
+  var DEFAULT={ name:'', avatar:'😀', theme:'aurora', sound:true, haptic:true, notif:false, turnSecs:DEFAULT_SECS, freezes:1, rankPoints:0, countryPick:'',
     xp:0, level:1, coins:60, streak:0, lastDay:null, dailyDoneDay:null,
     themesOwned:['aurora','midnight'], powers:{ hint:2, time:2, radar:2, shield:1 },
     stats:{ games:0, words:0, wins:0, bestSolo:0, bestChain:0, dailyBest:0, fastest:99, noTimeout:0 },
@@ -743,12 +796,23 @@
 
   var pushT=null;
   function schedulePush(){ if(!supa||!USER) return; clearTimeout(pushT); pushT=setTimeout(pushProfile,1200); }
+  /* registered / rank_points / freezes may not exist yet on an older database, and
+     Postgres rejects the entire upsert over one unknown column - which would take
+     all profile sync down with it. The first failure drops to the original column
+     set and stays there for the session. */
+  var CLOUD_EXT=true;
   function pushProfile(){ if(!supa||!USER) return;
-    try{ supa.from('profiles').upsert({ id:USER.id, username:P.name||'Player', avatar:P.avatar,
-      country:(navigator.language||'').split('-').pop().toUpperCase().slice(0,2),
+    var base={ id:USER.id, username:P.name||'Player', avatar:P.avatar, country:myCountry(),
       level:P.level, xp:P.xp, coins:P.coins, streak:P.streak,
       best_solo:P.stats.bestSolo, best_chain:P.stats.bestChain, games:P.stats.games, wins:P.stats.wins, words:P.stats.words,
-      updated_at:new Date().toISOString() }).then(function(){},function(){}); }catch(e){} }
+      updated_at:new Date().toISOString() };
+    function legacy(){ try{ supa.from('profiles').upsert(base).then(function(){},function(){}); }catch(e){} }
+    if(!CLOUD_EXT){ legacy(); return; }
+    var row={}; for(var k in base) row[k]=base[k];
+    row.registered=!!(USER && !USER.is_anonymous); row.rank_points=P.rankPoints||0; row.freezes=P.freezes||0;
+    try{ supa.from('profiles').upsert(row).then(
+      function(res){ if(res && res.error){ CLOUD_EXT=false; legacy(); } },
+      function(){ CLOUD_EXT=false; legacy(); }); }catch(e){ CLOUD_EXT=false; legacy(); } }
 
   // Identity comes from the account; progress takes whichever side is further along.
   //
@@ -778,6 +842,8 @@
         P.stats.games=mx(P.stats.games,r.games);
         P.stats.wins=mx(P.stats.wins,r.wins);
         P.stats.words=mx(P.stats.words,r.words);
+        if(r.rank_points!=null) P.rankPoints=mx(P.rankPoints,r.rank_points);
+        if(r.freezes!=null) P.freezes=Math.min(FREEZE_MAX,mx(P.freezes,r.freezes));
         try{localStorage.setItem('wordswap2',JSON.stringify(P));}catch(e){}
         pushProfile();   // the merge is the new truth, so the next device starts from it
         renderHUD(); if($('profile') && $('profile').classList.contains('active')) renderProfile();
@@ -794,12 +860,33 @@
     },function(){});
   }
 
+  /* Three boards off the same shape: worldwide, this player's country, and today's
+     Daily. Anonymous device accounts are filtered out - only registered players
+     belong on a public board - and each query falls back to the pre-migration
+     columns so the board still renders against a database that has not been updated. */
   function fetchBoard(kind){ if(!supa) return Promise.resolve(null);
+    var cc=myCountry();
+    function fromProfiles(d){ return (d||[]).map(function(x){ return { uid:x.id, name:x.username||'Player', av:x.avatar||'😀',
+      cc:x.country||'', score:x.best_solo||0, pts:x.rank_points||0, level:x.level }; }); }
+    function fromDaily(d){ return (d||[]).map(function(x){ var pr=x.profiles||{}; return { uid:pr.id, name:pr.username||'Player',
+      av:pr.avatar||'😀', cc:pr.country||'', score:x.score||0, pts:pr.rank_points||0 }; }); }
+
     if(kind==='daily'){ var day=today();
-      return supa.from('daily_scores').select('score, profiles(username,avatar)').eq('day',day).order('score',{ascending:false}).limit(50)
-        .then(function(r){ return (r.data||[]).map(function(x){ return {name:(x.profiles&&x.profiles.username)||'Player', av:(x.profiles&&x.profiles.avatar)||'😀', score:x.score}; }); },function(){return null;}); }
-    return supa.from('profiles').select('username,avatar,best_solo,level').order('best_solo',{ascending:false}).limit(50)
-      .then(function(r){ return (r.data||[]).map(function(x){ return {name:x.username||'Player', av:x.avatar||'😀', score:x.best_solo, level:x.level}; }); },function(){return null;});
+      return supa.from('daily_scores').select('score, profiles!inner(id,username,avatar,country,rank_points,registered)')
+        .eq('day',day).eq('profiles.registered',true).order('score',{ascending:false}).limit(50)
+        .then(function(r){ if(r.error) throw r.error; return fromDaily(r.data); })
+        .catch(function(){ return supa.from('daily_scores').select('score, profiles(id,username,avatar,country)')
+          .eq('day',day).order('score',{ascending:false}).limit(50)
+          .then(function(r){ return r.error?null:fromDaily(r.data); },function(){ return null; }); }); }
+
+    var q=supa.from('profiles').select('id,username,avatar,country,best_solo,rank_points,level').eq('registered',true);
+    if(kind==='local' && cc) q=q.eq('country',cc);
+    return q.order('rank_points',{ascending:false}).limit(50)
+      .then(function(r){ if(r.error) throw r.error; return fromProfiles(r.data); })
+      .catch(function(){ var q2=supa.from('profiles').select('id,username,avatar,country,best_solo,level');
+        if(kind==='local' && cc) q2=q2.eq('country',cc);
+        return q2.order('best_solo',{ascending:false}).limit(50)
+          .then(function(r){ return r.error?null:fromProfiles(r.data); },function(){ return null; }); });
   }
 
   /* auth */
@@ -870,16 +957,38 @@
 
   /* leaderboard screen */
   var curTab='global';
-  function openBoard(){ loadBoard(curTab); }
+  function openBoard(){ var t=$('tabLocal'); if(t){ var cc=myCountry(); t.innerHTML=cc?flagOf(cc):'Local'; t.title=cc?('Players in '+cc):'Local'; }
+    loadBoard(curTab); }
   $('boardTabs').querySelectorAll('button').forEach(function(b){ b.addEventListener('click',function(){ $('boardTabs').querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); curTab=b.dataset.tab; loadBoard(curTab); }); });
   function loadBoard(kind){ var list=$('boardList');
     if(!cloudOn()){ $('boardSub').textContent='Connect an account to see worldwide ranks.'; list.innerHTML=localBoard(); return; }
-    $('boardSub').textContent = USER? 'Compete with players worldwide.' : 'Sign in to appear on the board.';
+    $('boardSub').textContent = !USER ? 'Sign in to appear on the board.'
+      : kind==='daily' ? "Today's Daily - same word, same clock, for everyone."
+      : kind==='local' ? 'Players in your country, by ranking points.'
+      : 'Ranking points earned from every game you play.';
     list.innerHTML='<div class="sub">Loading…</div>';
     fetchBoard(kind).then(function(rows){ if(!rows){ list.innerHTML='<div class="sub">Could not load — check your connection.</div>'; return; }
       if(!rows.length){ list.innerHTML='<div class="sub">No scores yet — be the first! Play '+(kind==='daily'?'today\'s Daily':'Solo')+'.</div>'; return; }
-      list.innerHTML=rows.map(function(r,i){ var me=(P.name&&r.name===P.name)?' me':''; return '<div class="row'+me+'"><div class="rank">'+(i+1)+'</div><div class="av">'+r.av+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>'; }).join('');
+      list.innerHTML=boardHTML(rows);
     });
+  }
+  var MEDAL=['🥇','🥈','🥉'];
+  function fmtNum(n){ n=n||0; return n>=1000?(Math.round(n/100)/10)+'k':String(n); }
+  function boardHTML(rows){
+    var top=rows.slice(0,3), pod='';
+    if(top.length===3){
+      /* second, first, third - the winner sits centre and tallest, as on a podium */
+      pod='<div class="podium">'+[1,0,2].map(function(idx){ var r=top[idx];
+        return '<div class="pod p'+(idx+1)+'"><div class="pmed">'+MEDAL[idx]+'</div><div class="pav">'+r.av+'</div>'
+          +'<div class="pnm">'+esc(r.name)+'</div><div class="ppt">'+fmtNum(r.pts)+'</div></div>'; }).join('')+'</div>';
+    }
+    var head='<div class="lead-head"><span class="h-rank">#</span><span class="h-nm">Gamer</span>'
+      +'<span class="h-v">Best</span><span class="h-p">Points</span></div>';
+    var myId=(USER&&USER.id)||null;
+    return pod+head+rows.map(function(r,i){ var me=(myId&&r.uid===myId)?' me':'';
+      return '<div class="row'+me+'"><div class="rank">'+(i+1)+'</div><div class="av">'+r.av+'</div>'
+        +'<span class="fl">'+flagOf(r.cc)+'</span><div class="nm">'+esc(r.name)+'</div>'
+        +'<div class="v">'+fmtNum(r.score)+'</div><div class="pts">'+fmtNum(r.pts)+'</div></div>'; }).join('');
   }
   function localBoard(){ var L=(P.lead||[]).slice(0,10); if(!L.length) return '<div class="sub">Play Solo to set a local score. Add your Supabase keys to unlock the worldwide board!</div>';
     return L.map(function(r,i){ return '<div class="row"><div class="rank">'+(i+1)+'</div><div class="av">'+P.avatar+'</div><div class="nm">'+esc(r.name)+'</div><div class="v">'+r.score+'</div></div>'; }).join(''); }
@@ -1105,7 +1214,7 @@
   function aiPlay(word){ if(!G||G.mode!=='ai'||G.turn!==1) return; var prev=G.current; Sound.ok(); haptic(12);
     G.current=word; G.used.push(word); G.chain=(G.chain||0)+1; G.turn=0; G.limit=Math.max(G.diff.floor,G.limit-G.diff.step);
     renderGame(); renderTiles(true,prev); startTimer(); try{ $('answer').focus(); }catch(e){} }
-  function endAi(winnerIdx,reason){ stopTimer(); var won=(winnerIdx===0); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain);
+  function endAi(winnerIdx,reason){ stopTimer(); var won=(winnerIdx===0); addRank(won?25:8); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain);
     if(won){ P.stats.wins++; unlock('firstwin'); if(G.level==='hard')unlock('beathard'); if(G.level==='expert')unlock('beatexpert'); addXP(15); addCoins(5); bumpStreak(); }
     else { addXP(4); }
     save();
@@ -1117,7 +1226,7 @@
       showResult({ em:'🏆', title:(w!=null?G.names[w]:'Nobody')+' wins the party!', body:'Last player standing after '+G.chain+' words.', stats:[['Players',G.names.length],['Words played',G.chain]], reward:[['🪙','+6'],['⭐','+15']], mode:'party' }); confetti(); Sound.big(); return; }
     do{ G.turn=(G.turn+1)%G.names.length; }while(!G.alive[G.turn]); G.current=randWord(G.len); G.used=[G.current]; G.limit=G.diff.start; renderGame(); renderTiles(true); startTimer(); }
 
-  function endDuelRound(winnerIdx,reason){ stopTimer(); G.scores[winnerIdx]++;
+  function endDuelRound(winnerIdx,reason){ stopTimer(); addRank(12); G.scores[winnerIdx]++;
     if(G.scores[winnerIdx]>=G.target){ P.stats.games++; P.stats.wins++; if(G.names[winnerIdx]===(P.name||'You'))unlock('firstwin'); addXP(18); addCoins(5); bumpStreak(); save();
       showResult({ em:'🏆', title:G.names[winnerIdx]+' wins the match!', body:reason, stats:[['Final',G.scores[0]+' – '+G.scores[1]],['Words',G.chain]], reward:[['🪙','+5'],['⭐','+18']], mode:'duel' }); confetti(); Sound.big(); haptic([30,50,30]); }
     else { toast('🎉',G.names[winnerIdx]+' takes the round!'); showResult({ em:'⏱️', title:G.names[winnerIdx]+' wins the round', body:reason, stats:[['Score',G.scores[0]+' – '+G.scores[1]],['Round',G.roundNum]], reward:[], mode:'duel-continue' }); Sound.big(); }
@@ -1134,7 +1243,7 @@
   function gridSquares(pace){ return paceGrid(pace,0,40); }
   function dailyShareText(chain,score,pace){
     return 'WordSwap Daily #'+dayNum()+'\n'+paceGrid(pace,10,30)+'\n'+chain+'-word chain · '+score+' pts\nCan you beat it? '+location.origin+location.pathname; }
-  function endSolo(){ stopTimer(); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain); var best=false; var isDaily=(G.mode==='daily');
+  function endSolo(){ stopTimer(); addRank(Math.round(G.score/10)+(G.chain||0)+(G.mode==='daily'?15:0)); P.stats.games++; P.stats.bestChain=Math.max(P.stats.bestChain,G.chain); var best=false; var isDaily=(G.mode==='daily');
     if(isDaily){ if(G.score>P.stats.dailyBest)P.stats.dailyBest=G.score; P.dailyDoneDay=today(); bumpStreak(); submitDaily(G.score); }
     if(G.score>P.stats.bestSolo){ P.stats.bestSolo=G.score; best=true; }
     P.lead.push({name:P.name||'You',score:G.score,d:today()}); P.lead.sort(function(a,b){return b.score-a.score;}); P.lead=P.lead.slice(0,10);
@@ -1214,7 +1323,7 @@
   /* ---- profile ---- */
   function titleFor(l){ return l>=15?'Legend':l>=10?'Master':l>=6?'Pro':l>=3?'Challenger':'Rookie'; }
   function renderProfile(){ $('pfAv').textContent=P.avatar; $('pfName').textContent=P.name||'Player'; $('pfTitle').textContent=titleFor(P.level)+' · Lv '+P.level;
-    var s=P.stats; var g=[['Games',s.games],['Wins',s.wins],['Words',s.words],['Best solo',s.bestSolo],['Best chain',s.bestChain],['🔥 Streak',P.streak],['🧊 Freezes',P.freezes||0]];
+    var s=P.stats; var g=[['Games',s.games],['Wins',s.wins],['Words',s.words],['Best solo',s.bestSolo],['Best chain',s.bestChain],['🔥 Streak',P.streak],['🧊 Freezes',P.freezes||0],['🏅 Rank pts',P.rankPoints||0]];
     $('pfStats').innerHTML=g.map(function(x){return '<div class="stat"><div class="v">'+x[1]+'</div><div class="k">'+x[0]+'</div></div>';}).join('');
     var got=0; $('pfAch').innerHTML=ACH.map(function(a){ var h=!!P.ach[a.id]; if(h)got++; return '<div class="ach '+(h?'got':'')+'"><div class="ico">'+a.ic+'</div><div><div class="t">'+a.t+'</div><div class="d">'+a.d+'</div></div><div class="lk">'+(h?'✅':'🔒')+'</div></div>'; }).join('');
     $('pfAchCount').textContent=got+' of '+ACH.length+' unlocked';
